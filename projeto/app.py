@@ -5,11 +5,11 @@ from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///site.db')
+app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'sqlite:///site.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.secret_key = os.environ.get('SECRET_KEY', 'supersecretkey')
+app.secret_key = os.getenv('SECRET_KEY', 'supersecretkey')
 
-UPLOAD_FOLDER = os.path.join(os.getcwd(), 'comprovantes')
+UPLOAD_FOLDER = 'C:/Users/Guilherme/Desktop/project - Copia - Copia - Copia/Comprovantes'
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 db = SQLAlchemy(app)
@@ -169,7 +169,7 @@ def before_request():
 def clientes():
     if 'user_id' not in session:
         return redirect(url_for('login'))
-    if request.method == 'POST'):
+    if request.method == 'POST':
         nome = request.form['nome']
         cpf = request.form['cpf']
         endereco = request.form['endereco']
@@ -188,7 +188,7 @@ def editar_cliente(id):
     if 'user_id' not in session:
         return redirect(url_for('login'))
     cliente = Cliente.query.get_or_404(id)
-    if request.method == 'POST'):
+    if request.method == 'POST':
         cliente.nome = request.form['nome']
         cliente.cpf = request.form['cpf']
         cliente.endereco = request.form['endereco']
@@ -247,7 +247,7 @@ def salvar_cliente():
 def compras():
     if 'user_id' not in session:
         return redirect(url_for('login'))
-    if request.method == 'POST'):
+    if request.method == 'POST':
         try:
             for cliente in Cliente.query.all():
                 compra = Compra.query.filter_by(cliente_id=cliente.id).first()
@@ -270,7 +270,7 @@ def compras():
 def obras():
     if 'user_id' not in session:
         return redirect(url_for('login'))
-    if request.method == 'POST'):
+    if request.method == 'POST':
         try:
             for cliente in Cliente.query.all():
                 obra = Obra.query.filter_by(cliente_id=cliente.id).first()
@@ -297,7 +297,7 @@ def obras():
 def engenharia():
     if 'user_id' not in session:
         return redirect(url_for('login'))
-    if request.method == 'POST'):
+    if request.method == 'POST':
         try:
             for cliente in Cliente.query.all():
                 engenharia = Engenharia.query.filter_by(cliente_id=cliente.id).first()
@@ -331,7 +331,7 @@ def engenharia():
 def financeiro():
     if 'user_id' not in session:
         return redirect(url_for('login'))
-    if request.method == 'POST'):
+    if request.method == 'POST':
         try:
             for cliente in Cliente.query.all():
                 financeiro = Financeiro.query.filter_by(cliente_id=cliente.id).first()
