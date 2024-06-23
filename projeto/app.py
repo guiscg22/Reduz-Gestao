@@ -5,11 +5,11 @@ from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///site.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///site.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.secret_key = 'supersecretkey'
+app.secret_key = os.environ.get('SECRET_KEY', 'supersecretkey')
 
-UPLOAD_FOLDER = 'C:/Users/Guilherme/Desktop/project - Copia - Copia - Copia/Comprovantes'
+UPLOAD_FOLDER = os.path.join(app.root_path, 'comprovantes')
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 db = SQLAlchemy(app)
@@ -132,7 +132,7 @@ def editar_usuario(id):
     if 'user_id' not in session:
         return redirect(url_for('login'))
     user = User.query.get_or_404(id)
-    if request.method == 'POST':
+    if request.method == 'POST'):
         user.username = request.form['username']
         if request.form['password']:
             user.password = generate_password_hash(request.form['password'])
