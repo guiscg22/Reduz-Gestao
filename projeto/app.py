@@ -5,11 +5,11 @@ from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///site.db')
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.secret_key = os.environ.get('SECRET_KEY', 'supersecretkey')
+app.secret_key = os.environ.get('SECRET_KEY')
 
-UPLOAD_FOLDER = os.environ.get('UPLOAD_FOLDER', 'C:/Users/Guilherme/Desktop/project - Copia - Copia - Copia/Comprovantes')
+UPLOAD_FOLDER = os.environ.get('UPLOAD_FOLDER')
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 db = SQLAlchemy(app)
@@ -437,4 +437,4 @@ def get_comprovante(cliente_id, filename):
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
-    app.run(host='0.0.0.0', port=8000)
+    app.run(debug=True)
