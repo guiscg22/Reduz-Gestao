@@ -1,19 +1,17 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash, session
-from .models import User, Cliente, Compra, Obra, Engenharia, Financeiro, Pagamento
-from . import db
+from flask import render_template, request, redirect, url_for, flash, session
+from app import app, db
+from models import User, Cliente, Compra, Obra, Engenharia, Financeiro, Pagamento
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
 import os
 
-main = Blueprint('main', __name__)
-
-@main.route('/')
+@app.route('/')
 def index():
     if 'user_id' not in session:
-        return redirect(url_for('main.login'))
+        return redirect(url_for('login'))
     return render_template('index.html')
 
-@main.route('/login', methods=['GET', 'POST'])
+@app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
         username = request.form['username']
@@ -22,20 +20,20 @@ def login():
         if user and check_password_hash(user.password, password):
             session['user_id'] = user.id
             session['username'] = user.username
-            return redirect(url_for('main.index'))
+            return redirect(url_for('index'))
         flash('Login failed. Check your username and password.', 'danger')
     return render_template('login.html')
 
-@main.route('/logout')
+@app.route('/logout')
 def logout():
     session.pop('user_id', None)
     session.pop('username', None)
-    return redirect(url_for('main.login'))
+    return redirect(url_for('login'))
 
-@main.route('/usuarios', methods=['GET', 'POST'])
+@app.route('/usuarios', methods=['GET', 'POST'])
 def usuarios():
     if 'user_id' not in session:
-        return redirect(url_for('main.login'))
+        return redirect(url_for('login'))
     if request.method == 'POST':
         username = request.form['username']
         password = generate_password_hash(request.form['password'])
@@ -49,10 +47,10 @@ def usuarios():
     users = User.query.all()
     return render_template('usuarios.html', users=users)
 
-@main.route('/usuarios/editar/<int:id>', methods=['GET', 'POST'])
+@app.route('/usuarios/editar/<int:id>', methods=['GET', 'POST'])
 def editar_usuario(id):
     if 'user_id' not in session:
-        return redirect(url_for('main.login'))
+        return redirect(url_for('login'))
     user = User.query.get_or_404(id)
     if request.method == 'POST':
         user.username = request.form['username']
@@ -61,15 +59,15 @@ def editar_usuario(id):
         try:
             db.session.commit()
             flash('User updated successfully!', 'success')
-            return redirect(url_for('main.usuarios'))
+            return redirect(url_for('usuarios'))
         except Exception as e:
             flash(f'Error updating user: {e}', 'danger')
     return render_template('editar_usuario.html', user=user)
 
-@main.route('/usuarios/excluir/<int:id>', methods=['POST'])
+@app.route('/usuarios/excluir/<int:id>', methods=['POST'])
 def excluir_usuario(id):
     if 'user_id' not in session:
-        return redirect(url_for('main.login'))
+        return redirect(url_for('login'))
     user = User.query.get_or_404(id)
     try:
         db.session.delete(user)
@@ -77,20 +75,12 @@ def excluir_usuario(id):
         flash('User deleted successfully!', 'success')
     except Exception as e:
         flash(f'Error deleting user: {e}', 'danger')
-    return redirect(url_for('main.usuarios'))
+    return redirect(url_for('usuarios'))
 
-@main.before_request
-def before_request():
-    if not User.query.filter_by(username='alisson').first():
-        db.session.add(User(username='alisson', password=generate_password_hash('123456')))
-    if not User.query.filter_by(username='guilherme').first():
-        db.session.add(User(username='guilherme', password=generate_password_hash('123456')))
-    db.session.commit()
-
-@main.route('/clientes', methods=['GET', 'POST'])
+@app.route('/clientes', methods=['GET', 'POST'])
 def clientes():
     if 'user_id' not in session:
-        return redirect(url_for('main.login'))
+        return redirect(url_for('login'))
     if request.method == 'POST':
         nome = request.form['nome']
         cpf = request.form['cpf']
@@ -105,10 +95,10 @@ def clientes():
     clientes = Cliente.query.all()
     return render_template('clientes.html', clientes=clientes)
 
-@main.route('/clientes/editar/<int:id>', methods=['GET', 'POST'])
+@app.route('/clientes/editar/<int:id>', methods=['GET', 'POST'])
 def editar_cliente(id):
     if 'user_id' not in session:
-        return redirect(url_for('main.login'))
+        return redirect(url_for('login'))
     cliente = Cliente.query.get_or_404(id)
     if request.method == 'POST':
         cliente.nome = request.form['nome']
@@ -121,10 +111,10 @@ def editar_cliente(id):
             flash('Erro ao editar cliente')
     return render_template('editar_cliente.html', cliente=cliente)
 
-@main.route('/clientes/excluir/<int:id>', methods=['GET', 'POST'])
+@app.route('/clientes/excluir/<int:id>', methods=['GET', 'POST'])
 def excluir_cliente(id):
     if 'user_id' not in session:
-        return redirect(url_for('main.login'))
+        return redirect(url_for('login'))
     try:
         cliente = Cliente.query.get(id)
         if cliente:
@@ -137,19 +127,19 @@ def excluir_cliente(id):
         db.session.rollback()
         flash(f'Erro ao excluir cliente: {e}', 'error')
     finally:
-        return redirect(url_for('main.listar_clientes'))
+        return redirect(url_for('listar_clientes'))
 
-@main.route('/clientes')
+@app.route('/clientes')
 def listar_clientes():
     if 'user_id' not in session:
-        return redirect(url_for('main.login'))
+        return redirect(url_for('login'))
     clientes = Cliente.query.all()
     return render_template('listar_clientes.html', clientes=clientes)
 
-@main.route('/clientes/salvar', methods=['POST'])
+@app.route('/clientes/salvar', methods=['POST'])
 def salvar_cliente():
     if 'user_id' not in session:
-        return redirect(url_for('main.login'))
+        return redirect(url_for('login'))
     nome = request.form.get('nome')
     endereco = request.form.get('endereco')
     cpf = request.form.get('cpf')
@@ -163,12 +153,12 @@ def salvar_cliente():
         db.session.rollback()
         flash(f'Erro ao salvar cliente: {e}', 'error')
 
-    return redirect(url_for('main.listar_clientes'))
+    return redirect(url_for('listar_clientes'))
 
-@main.route('/compras', methods=['GET', 'POST'])
+@app.route('/compras', methods=['GET', 'POST'])
 def compras():
     if 'user_id' not in session:
-        return redirect(url_for('main.login'))
+        return redirect(url_for('login'))
     if request.method == 'POST':
         try:
             for cliente in Cliente.query.all():
@@ -181,17 +171,17 @@ def compras():
                 compra.nota_fiscal = request.form.get(f'nota_fiscal_{cliente.id}')
                 compra.status = request.form.get(f'status_{cliente.id}')
             db.session.commit()
-            return redirect(url_for('main.compras'))
+            return redirect(url_for('compras'))
         except Exception as e:
             flash(f"Erro ao salvar compras: {e}")
     compras = Compra.query.all()
     clientes = Cliente.query.all()
     return render_template('compras.html', compras=compras, clientes=clientes)
 
-@main.route('/obras', methods=['GET', 'POST'])
+@app.route('/obras', methods=['GET', 'POST'])
 def obras():
     if 'user_id' not in session:
-        return redirect(url_for('main.login'))
+        return redirect(url_for('login'))
     if request.method == 'POST':
         try:
             for cliente in Cliente.query.all():
@@ -208,17 +198,17 @@ def obras():
                 obra.data_instalacao = datetime.strptime(request.form.get(f'data_instalacao_{cliente.id}'), '%Y-%m-%d').date() if request.form.get(f'data_instalacao_{cliente.id}') else None
                 obra.status = request.form.get(f'status_{cliente.id}')
             db.session.commit()
-            return redirect(url_for('main.obras'))
+            return redirect(url_for('obras'))
         except Exception as e:
             flash(f"Erro ao salvar obras: {e}")
     obras = Obra.query.all()
     clientes = Cliente.query.all()
     return render_template('obras.html', obras=obras, clientes=clientes)
 
-@main.route('/engenharia', methods=['GET', 'POST'])
+@app.route('/engenharia', methods=['GET', 'POST'])
 def engenharia():
     if 'user_id' not in session:
-        return redirect(url_for('main.login'))
+        return redirect(url_for('login'))
     if request.method == 'POST':
         try:
             for cliente in Cliente.query.all():
@@ -242,17 +232,17 @@ def engenharia():
                 engenharia.status = request.form.get(f'status_{cliente.id}')
                 engenharia.data_limite_parecer = datetime.strptime(request.form.get(f'data_limite_parecer_{cliente.id}'), '%Y-%m-%d').date() if request.form.get(f'data_limite_parecer_{cliente.id}') else None
             db.session.commit()
-            return redirect(url_for('main.engenharia'))
+            return redirect(url_for('engenharia'))
         except Exception as e:
             flash(f"Erro ao salvar engenharia: {e}")
     engenharias = Engenharia.query.all()
     clientes = Cliente.query.all()
     return render_template('engenharia.html', engenharias=engenharias, clientes=clientes)
 
-@main.route('/financeiro', methods=['GET', 'POST'])
+@app.route('/financeiro', methods=['GET', 'POST'])
 def financeiro():
     if 'user_id' not in session:
-        return redirect(url_for('main.login'))
+        return redirect(url_for('login'))
     if request.method == 'POST':
         try:
             for cliente in Cliente.query.all():
@@ -271,9 +261,11 @@ def financeiro():
                 financeiro.forma_pagamento = request.form.get(f'forma_pagamento_{cliente.id}')
                 financeiro.observacao = request.form.get(f'observacao_{cliente.id}')
 
+                # Reset valor recebido antes de calcular
                 financeiro.valor_recebido = 0
                 pagamentos = Pagamento.query.filter_by(financeiro_id=financeiro.id).all()
 
+                # Remover pagamentos marcados
                 removed_payments = [key.split('_')[2] for key, value in request.form.items() if key.startswith('removed_') and value == 'true']
                 for pagamento in pagamentos:
                     if str(pagamento.id) in removed_payments:
@@ -287,6 +279,7 @@ def financeiro():
                         
                         financeiro.valor_recebido += pagamento.valor
 
+                # Adicionar novos pagamentos
                 num_pagamentos = int(request.form.get(f'num_pagamentos_{cliente.id}', 0))
                 for i in range(1, num_pagamentos + 1):
                     data_pagamento = datetime.strptime(request.form.get(f'data_pagamento_{cliente.id}_new_{i}'), '%Y-%m-%d').date() if request.form.get(f'data_pagamento_{cliente.id}_new_{i}') else None
@@ -298,6 +291,7 @@ def financeiro():
                     comprovante = request.files.get(f'comprovante_{cliente.id}_new_{i}')
 
                     if data_pagamento and forma_pagamento and valor:
+                        # Criar diretório do cliente se não existir
                         client_folder = os.path.join(app.config['UPLOAD_FOLDER'], str(cliente.id))
                         if not os.path.exists(client_folder):
                             os.makedirs(client_folder)
@@ -319,7 +313,7 @@ def financeiro():
 
             db.session.commit()
             flash('Dados financeiros salvos com sucesso!', 'success')
-            return redirect(url_for('main.financeiro'))
+            return redirect(url_for('financeiro'))
         except Exception as e:
             db.session.rollback()
             flash(f"Erro ao salvar financeiro: {e}", 'error')
@@ -332,10 +326,10 @@ def financeiro():
 
     return render_template('financeiro.html', financeiros=financeiros, clientes=clientes, total_valor_fechado=total_valor_fechado, total_valor_recebido=total_valor_recebido, diferenca=diferenca)
 
-@main.route('/delete_payment/<int:payment_id>', methods=['POST'])
+@app.route('/delete_payment/<int:payment_id>', methods=['POST'])
 def delete_payment(payment_id):
     if 'user_id' not in session:
-        return redirect(url_for('main.login'))
+        return redirect(url_for('login'))
     try:
         pagamento = Pagamento.query.get(payment_id)
         if pagamento:
@@ -347,7 +341,7 @@ def delete_payment(payment_id):
         db.session.rollback()
         return jsonify({"success": False, "message": str(e)}), 500
 
-@main.route('/comprovantes/<int:cliente_id>/<filename>')
+@app.route('/comprovantes/<int:cliente_id>/<filename>')
 def get_comprovante(cliente_id, filename):
     client_folder = os.path.join(app.config['UPLOAD_FOLDER'], str(cliente_id))
     return send_from_directory(client_folder, filename)
