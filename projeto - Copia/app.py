@@ -9,7 +9,7 @@ app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'sqlite:///sit
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.secret_key = os.getenv('SECRET_KEY', 'supersecretkey')
 
-UPLOAD_FOLDER = 'Comprovantes'
+UPLOAD_FOLDER = os.getenv('UPLOAD_FOLDER', 'Comprovantes')
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 db = SQLAlchemy(app)
@@ -378,7 +378,7 @@ def financeiro():
                     
                     comprovante = request.files.get(f'comprovante_{cliente.id}_new_{i}')
 
-                    if data_pagamento and forma_pagamento and valor:
+                    if data_pagamento e forma_pagamento e valor:
                         # Criar diretório do cliente se não existir
                         client_folder = os.path.join(app.config['UPLOAD_FOLDER'], str(cliente.id))
                         if not os.path.exists(client_folder):
