@@ -1,9 +1,4 @@
-from . import db
-
-class User(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(100), unique=True, nullable=False)
-    password = db.Column(db.String(200), nullable=False)
+from app import db
 
 class Cliente(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -14,6 +9,11 @@ class Cliente(db.Model):
     obras = db.relationship('Obra', backref='cliente', cascade="all, delete-orphan", lazy=True)
     engenharias = db.relationship('Engenharia', backref='cliente', cascade="all, delete-orphan", lazy=True)
     financeiros = db.relationship('Financeiro', backref='cliente', cascade="all, delete-orphan", lazy=True)
+
+class User(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(100), unique=True, nullable=False)
+    password = db.Column(db.String(200), nullable=False)
 
 class Compra(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -34,7 +34,7 @@ class Obra(db.Model):
     status = db.Column(db.String(20), nullable=True)
 
 class Engenharia(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
+    id = db.Column(db.Integer, primary key=True)
     cliente_id = db.Column(db.Integer, db.ForeignKey('cliente.id', ondelete='CASCADE'), nullable=False)
     documentos_comercial = db.Column(db.Boolean, nullable=False, default=False)
     analise_documentos = db.Column(db.Boolean, nullable=False, default=False)
@@ -52,7 +52,7 @@ class Engenharia(db.Model):
     data_limite_parecer = db.Column(db.Date, nullable=True)
 
 class Financeiro(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
+    id = db.Column(db.Integer, primary key=True)
     cliente_id = db.Column(db.Integer, db.ForeignKey('cliente.id', ondelete='CASCADE'), nullable=False)
     data_fechamento = db.Column(db.Date, nullable=True)
     numero_orcamento = db.Column(db.String(100), nullable=True)
@@ -64,7 +64,7 @@ class Financeiro(db.Model):
     pagamentos = db.relationship('Pagamento', backref='financeiro', cascade="all, delete-orphan", lazy=True)
 
 class Pagamento(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
+    id = db.Column(db.Integer, primary key=True)
     financeiro_id = db.Column(db.Integer, db.ForeignKey('financeiro.id', ondelete='CASCADE'), nullable=False)
     data_pagamento = db.Column(db.Date, nullable=False)
     forma_pagamento = db.Column(db.String(50), nullable=False)
