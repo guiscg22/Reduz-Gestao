@@ -378,7 +378,7 @@ def financeiro():
                     
                     comprovante = request.files.get(f'comprovante_{cliente.id}_new_{i}')
 
-                    if data_pagamento e forma_pagamento e valor:
+                    if data_pagamento and forma_pagamento and valor:
                         # Criar diretório do cliente se não existir
                         client_folder = os.path.join(app.config['UPLOAD_FOLDER'], str(cliente.id))
                         if not os.path.exists(client_folder):
