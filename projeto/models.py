@@ -1,6 +1,9 @@
-from flask_sqlalchemy import SQLAlchemy
+from . import db
 
-db = SQLAlchemy()
+class User(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(100), unique=True, nullable=False)
+    password = db.Column(db.String(200), nullable=False)
 
 class Cliente(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -11,11 +14,6 @@ class Cliente(db.Model):
     obras = db.relationship('Obra', backref='cliente', cascade="all, delete-orphan", lazy=True)
     engenharias = db.relationship('Engenharia', backref='cliente', cascade="all, delete-orphan", lazy=True)
     financeiros = db.relationship('Financeiro', backref='cliente', cascade="all, delete-orphan", lazy=True)
-
-class User(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(100), unique=True, nullable=False)
-    password = db.Column(db.String(200), nullable=False)
 
 class Compra(db.Model):
     id = db.Column(db.Integer, primary_key=True)
