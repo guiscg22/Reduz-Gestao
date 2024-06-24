@@ -1,0 +1,34 @@
+<!-- listar_clientes.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Lista de Clientes</title>
+</head>
+<body>
+    <h1>Clientes</h1>
+    <table border="1">
+        <tr>
+            <th>ID</th>
+            <th>Nome</th>
+            <th>Endereço</th>
+            <th>CPF</th>
+        </tr>
+        {% for cliente in clientes %}
+        <tr>
+            <td>{{ cliente.id }}</td>
+            <td>{{ cliente.nome }}</td>
+            <td>{{ cliente.endereco }}</td>
+            <td>{{ cliente.cpf }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+    <h2>Adicionar Novo Cliente</h2>
+    <form method="POST" action="{{ url_for('salvar_cliente') }}">
+        Nome: <input type="text" name="nome"><br>
+        Endereço: <input type="text" name="endereco"><br>
+        CPF: <input type="text" name="cpf"><br>
+        <button type="submit">Salvar</button>
+    </form>
+</body>
+</html>
