@@ -1,23 +1,25 @@
 import os
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, session, send_from_directory
 from flask_sqlalchemy import SQLAlchemy
+from flask_migrate import Migrate
 from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'sqlite:///site.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.secret_key = os.getenv('SECRET_KEY', 'supersecretkey')
+app.secret_key = 'supersecretkey'
 
 UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'Comprovantes')
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 db = SQLAlchemy(app)
+migrate = Migrate(app, db)
 
 class Cliente(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     nome = db.Column(db.String(100), nullable=False)
-    cpf = db.Column(db.String(14), unique=True, nullable=False)  # Adjusted for CPF format
+    cpf = db.Column(db.String(14), unique=True, nullable=False)
     endereco = db.Column(db.String(200), nullable=False)
     compras = db.relationship('Compra', backref='cliente', cascade="all, delete-orphan", lazy=True)
     obras = db.relationship('Obra', backref='cliente', cascade="all, delete-orphan", lazy=True)
@@ -31,13 +33,11 @@ class User(db.Model):
 
 class Compra(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    cliente_id = db.Column(db.Integer, db.ForeignKey('cliente.id'), nullable=False)
-    data_compra = db.Column(db.Date)
-    produto = db.Column(db.String(100))
-    quantidade = db.Column(db.Integer)
-    valor_total = db.Column(db.Float)
-    status_entrega = db.Column(db.String(50))
-
+    cliente_id = db.Column(db.Integer, db.ForeignKey('cliente.id', ondelete='CASCADE'), nullable=False)
+    data_compra = db.Column(db.Date, nullable=True)  # Adicionada a coluna data_compra
+    orcamento = db.Column(db.String(100), nullable=True)
+    nota_fiscal = db.Column(db.String(100), nullable=True)
+    status = db.Column(db.String(20), nullable=True)
 
 class Obra(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -258,15 +258,13 @@ def compras():
                     compra = Compra(cliente_id=cliente.id)
                     db.session.add(compra)
                 
-                compra.data_compra = datetime.strptime(request.form.get(f'data_compra_{cliente.id}'), '%Y-%m-%d').date() if request.form.get(f'data_compra_{cliente.id}') else None
-                compra.produto = request.form.get(f'produto_{cliente.id}')
-                compra.quantidade = int(request.form.get(f'quantidade_{cliente.id}')) if request.form.get(f'quantidade_{cliente.id}') else None
-                compra.valor_total = float(request.form.get(f'valor_total_{cliente.id}')) if request.form.get(f'valor_total_{cliente.id}') else None
-                compra.status_entrega = request.form.get(f'status_entrega_{cliente.id}')
+                compra.orcamento = request.form.get(f'orcamento_{cliente.id}')
+                compra.nota_fiscal = request.form.get(f'nota_fiscal_{cliente.id}')
+                compra.status = request.form.get(f'status_{cliente.id}')
             db.session.commit()
             return redirect(url_for('compras'))
         except Exception as e:
-            flash(f"Erro ao salvar compras: {e}", 'danger')
+            flash(f"Erro ao salvar compras: {e}")
     compras = Compra.query.all()
     clientes = Cliente.query.all()
     return render_template('compras.html', compras=compras, clientes=clientes)
