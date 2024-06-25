@@ -6,6 +6,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__)
 
+# Buscar a URL do banco de dados do ambiente e ajustar se necessário
 database_url = os.getenv('DATABASE_URL', 'sqlite:///site.db')
 if database_url.startswith("postgres://"):
     database_url = database_url.replace("postgres://", "postgresql://", 1)
@@ -383,7 +384,7 @@ def financeiro():
                     
                     comprovante = request.files.get(f'comprovante_{cliente.id}_new_{i}')
 
-                    if data_pagamento and forma_pagamento e valor:
+                    if data_pagamento and forma_pagamento and valor:
                         # Criar diretório do cliente se não existir
                         client_folder = os.path.join(app.config['UPLOAD_FOLDER'], str(cliente.id))
                         if not os.path.exists(client_folder):
