@@ -1,8 +1,10 @@
 import os
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, session, send_from_directory
 from flask_sqlalchemy import SQLAlchemy
+from flask_migrate import Migrate
 from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
 
@@ -10,7 +12,7 @@ app = Flask(__name__)
 database_url = os.getenv('DATABASE_URL', 'sqlite:///site.db')
 if database_url.startswith("postgres://"):
     database_url = database_url.replace("postgres://", "postgresql://", 1)
-    
+
 app.config['SQLALCHEMY_DATABASE_URI'] = database_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.secret_key = os.getenv('SECRET_KEY', 'supersecretkey')
@@ -19,11 +21,12 @@ UPLOAD_FOLDER = os.getenv('UPLOAD_FOLDER', 'Comprovantes')
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 db = SQLAlchemy(app)
+migrate = Migrate(app, db)
 
 class Cliente(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     nome = db.Column(db.String(100), nullable=False)
-    cpf = db.Column(db.String(11), unique=True, nullable=False)
+    cpf = db.Column(db.String(14), unique=True, nullable=False)
     endereco = db.Column(db.String(200), nullable=False)
     compras = db.relationship('Compra', backref='cliente', cascade="all, delete-orphan", lazy=True)
     obras = db.relationship('Obra', backref='cliente', cascade="all, delete-orphan", lazy=True)
@@ -184,8 +187,9 @@ def clientes():
             db.session.add(novo_cliente)
             db.session.commit()
             return redirect('/clientes')
-        except:
-            flash('Erro ao adicionar cliente')
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Erro ao adicionar cliente: {e}', 'danger')
     clientes = Cliente.query.all()
     return render_template('clientes.html', clientes=clientes)
 
@@ -200,54 +204,47 @@ def editar_cliente(id):
         cliente.endereco = request.form['endereco']
         try:
             db.session.commit()
+            flash('Cliente atualizado com sucesso!', 'success')
             return redirect('/clientes')
-        except:
-            flash('Erro ao editar cliente')
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Erro ao atualizar cliente: {e}', 'danger')
     return render_template('editar_cliente.html', cliente=cliente)
 
-@app.route('/clientes/excluir/<int:id>', methods=['GET', 'POST'])
+@app.route('/clientes/excluir/<int:id>', methods=['POST'])
 def excluir_cliente(id):
     if 'user_id' not in session:
         return redirect(url_for('login'))
+    cliente = Cliente.query.get_or_404(id)
     try:
-        cliente = Cliente.query.get(id)
-        if cliente:
-            db.session.delete(cliente)
-            db.session.commit()
-            flash('Cliente excluído com sucesso!', 'success')
-        else:
-            flash('Cliente não encontrado.', 'error')
-    except Exception as e:
-        db.session.rollback()
-        flash(f'Erro ao excluir cliente: {e}', 'error')
-    finally:
-        return redirect(url_for('listar_clientes'))
-
-@app.route('/clientes')
-def listar_clientes():
-    if 'user_id' not in session:
-        return redirect(url_for('login'))
-    clientes = Cliente.query.all()
-    return render_template('listar_clientes.html', clientes=clientes)
-
-@app.route('/clientes/salvar', methods=['POST'])
-def salvar_cliente():
-    if 'user_id' not in session:
-        return redirect(url_for('login'))
-    nome = request.form.get('nome')
-    endereco = request.form.get('endereco')
-    cpf = request.form.get('cpf')
-
-    novo_cliente = Cliente(nome=nome, endereco=endereco, cpf=cpf)
-    try:
-        db.session.add(novo_cliente)
+        db.session.delete(cliente)
         db.session.commit()
-        flash('Cliente salvo com sucesso!', 'success')
+        flash('Cliente excluído com sucesso!', 'success')
     except Exception as e:
         db.session.rollback()
-        flash(f'Erro ao salvar cliente: {e}', 'error')
+        flash(f'Erro ao excluir cliente: {e}', 'danger')
+    return redirect('/clientes')
 
-    return redirect(url_for('listar_clientes'))
+@app.route('/uploads/<filename>')
+def send_file(filename):
+    return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
+
+@app.route('/upload', methods=['POST'])
+def upload_file():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    if 'file' not in request.files:
+        flash('No file part', 'danger')
+        return redirect(request.url)
+    file = request.files['file']
+    if file.filename == '':
+        flash('No selected file', 'danger')
+        return redirect(request.url)
+    if file:
+        filename = secure_filename(file.filename)
+        file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+        flash('File successfully uploaded', 'success')
+        return redirect(url_for('index'))
 
 @app.route('/compras', methods=['GET', 'POST'])
 def compras():
@@ -384,7 +381,7 @@ def financeiro():
                     
                     comprovante = request.files.get(f'comprovante_{cliente.id}_new_{i}')
 
-                    if data_pagamento and forma_pagamento and valor:
+                    if data_pagamento e forma_pagamento e valor:
                         # Criar diretório do cliente se não existir
                         client_folder = os.path.join(app.config['UPLOAD_FOLDER'], str(cliente.id))
                         if not os.path.exists(client_folder):
@@ -392,7 +389,7 @@ def financeiro():
 
                         comprovante_filename = None
                         if comprovante:
-                            comprovante_filename = f'{cliente.id}_{comprovante.filename}'
+                            comprovante_filename = f'{cliente.id}_{secure_filename(comprovante.filename)}'
                             comprovante.save(os.path.join(client_folder, comprovante_filename))
 
                         pagamento = Pagamento(
