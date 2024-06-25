@@ -23,7 +23,7 @@ db = SQLAlchemy(app)
 class Cliente(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     nome = db.Column(db.String(100), nullable=False)
-    cpf = db.Column(db.String(11), unique=True, nullable=False)
+    cpf = db.Column(db.String(14), unique=True, nullable=False)
     endereco = db.Column(db.String(200), nullable=False)
     compras = db.relationship('Compra', backref='cliente', cascade="all, delete-orphan", lazy=True)
     obras = db.relationship('Obra', backref='cliente', cascade="all, delete-orphan", lazy=True)
