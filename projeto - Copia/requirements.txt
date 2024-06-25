@@ -5,3 +5,4 @@ werkzeug>=2.0.0
 Flask-SQLAlchemy>=2.5.0
 psycopg2-binary>=2.9.0
 dj-database-url
+Flask-Migrate==3.1.0
