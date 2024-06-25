@@ -124,7 +124,7 @@ def usuarios():
         return redirect(url_for('login'))
     if request.method == 'POST':
         username = request.form['username']
-        password = generate_password_hash(request.form['password'])
+        password = generate_password_hash(request.form['password'], method='pbkdf2:sha256')
         new_user = User(username=username, password=password)
         try:
             db.session.add(new_user)
@@ -143,7 +143,7 @@ def editar_usuario(id):
     if request.method == 'POST':
         user.username = request.form['username']
         if request.form['password']:
-            user.password = generate_password_hash(request.form['password'])
+            user.password = generate_password_hash(request.form['password'], method='pbkdf2:sha256')
         try:
             db.session.commit()
             flash('User updated successfully!', 'success')
@@ -168,9 +168,9 @@ def excluir_usuario(id):
 @app.before_request
 def before_request():
     if not User.query.filter_by(username='alisson').first():
-        db.session.add(User(username='alisson', password=generate_password_hash('123456')))
+        db.session.add(User(username='alisson', password=generate_password_hash('123456', method='pbkdf2:sha256')))
     if not User.query.filter_by(username='guilherme').first():
-        db.session.add(User(username='guilherme', password=generate_password_hash('123456')))
+        db.session.add(User(username='guilherme', password=generate_password_hash('123456', method='pbkdf2:sha256')))
     db.session.commit()
 
 @app.route('/clientes', methods=['GET', 'POST'])
