@@ -140,7 +140,7 @@ def editar_usuario(id):
     if 'user_id' not in session:
         return redirect(url_for('login'))
     user = User.query.get_or_404(id)
-    if request.method == 'POST']:
+    if request.method == 'POST':
         user.username = request.form['username']
         if request.form['password']:
             user.password = generate_password_hash(request.form['password'], method='pbkdf2:sha256')
@@ -180,7 +180,7 @@ def before_request():
 def clientes():
     if 'user_id' not in session:
         return redirect(url_for('login'))
-    if request.method == 'POST']:
+    if request.method == 'POST':
         nome = request.form['nome']
         cpf = request.form['cpf']
         endereco = request.form['endereco']
@@ -210,7 +210,7 @@ def editar_cliente(id):
             flash('Erro ao editar cliente')
     return render_template('editar_cliente.html', cliente=cliente)
 
-@app.route('/clientes/excluir/<int:id>', methods=['GET', 'POST'])
+@app.route('/clientes/excluir/<int:id>', methods=['POST'])
 def excluir_cliente(id):
     if 'user_id' not in session:
         return redirect(url_for('login'))
@@ -226,33 +226,7 @@ def excluir_cliente(id):
         db.session.rollback()
         flash(f'Erro ao excluir cliente: {e}', 'error')
     finally:
-        return redirect(url_for('listar_clientes'))
-
-@app.route('/clientes')
-def listar_clientes():
-    if 'user_id' not in session:
-        return redirect(url_for('login'))
-    clientes = Cliente.query.all()
-    return render_template('listar_clientes.html', clientes=clientes)
-
-@app.route('/clientes/salvar', methods=['POST'])
-def salvar_cliente():
-    if 'user_id' not in session:
-        return redirect(url_for('login'))
-    nome = request.form.get('nome')
-    endereco = request.form.get('endereco')
-    cpf = request.form.get('cpf')
-
-    novo_cliente = Cliente(nome=nome, endereco=endereco, cpf=cpf)
-    try:
-        db.session.add(novo_cliente)
-        db.session.commit()
-        flash('Cliente salvo com sucesso!', 'success')
-    except Exception as e:
-        db.session.rollback()
-        flash(f'Erro ao salvar cliente: {e}', 'error')
-
-    return redirect(url_for('listar_clientes'))
+        return redirect(url_for('clientes'))
 
 @app.route('/compras', methods=['GET', 'POST'])
 def compras():
@@ -308,7 +282,7 @@ def obras():
 def engenharia():
     if 'user_id' not in session:
         return redirect(url_for('login'))
-    if request.method == 'POST':
+    if request.method == 'POST']:
         try:
             for cliente in Cliente.query.all():
                 engenharia = Engenharia.query.filter_by(cliente_id=cliente.id).first()
@@ -342,7 +316,7 @@ def engenharia():
 def financeiro():
     if 'user_id' not in session:
         return redirect(url_for('login'))
-    if request.method == 'POST':
+    if request.method == 'POST']:
         try:
             for cliente in Cliente.query.all():
                 financeiro = Financeiro.query.filter_by(cliente_id=cliente.id).first()
