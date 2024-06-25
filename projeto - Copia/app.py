@@ -5,9 +5,9 @@ from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///site.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'sqlite:///site.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.secret_key = 'supersecretkey'
+app.secret_key = os.getenv('SECRET_KEY', 'supersecretkey')
 
 UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'Comprovantes')
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
@@ -260,7 +260,7 @@ def compras():
                 compra.data_compra = datetime.strptime(request.form.get(f'data_compra_{cliente.id}'), '%Y-%m-%d').date() if request.form.get(f'data_compra_{cliente.id}') else None
                 compra.produto = request.form.get(f'produto_{cliente.id}')
                 compra.quantidade = int(request.form.get(f'quantidade_{cliente.id}')) if request.form.get(f'quantidade_{cliente.id}') else None
-                compra.valor_total = float(request.form.get(f'valor_total_{cliente.id}') if request.form.get(f'valor_total_{cliente.id}')) else None
+                compra.valor_total = float(request.form.get(f'valor_total_{cliente.id}')) if request.form.get(f'valor_total_{cliente.id}') else None
                 compra.status_entrega = request.form.get(f'status_entrega_{cliente.id}')
             db.session.commit()
             return redirect(url_for('compras'))
