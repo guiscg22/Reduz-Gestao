@@ -32,9 +32,11 @@ class User(db.Model):
 class Compra(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     cliente_id = db.Column(db.Integer, db.ForeignKey('cliente.id', ondelete='CASCADE'), nullable=False)
-    orcamento = db.Column(db.String(100), nullable=True)
-    nota_fiscal = db.Column(db.String(100), nullable=True)
-    status = db.Column(db.String(20), nullable=True)
+    data_compra = db.Column(db.Date, nullable=True)
+    produto = db.Column(db.String(100), nullable=True)
+    quantidade = db.Column(db.Integer, nullable=True)
+    valor_total = db.Column(db.Float, nullable=True)
+    status_entrega = db.Column(db.String(50), nullable=True)
 
 class Obra(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -255,13 +257,15 @@ def compras():
                     compra = Compra(cliente_id=cliente.id)
                     db.session.add(compra)
                 
-                compra.orcamento = request.form.get(f'orcamento_{cliente.id}')
-                compra.nota_fiscal = request.form.get(f'nota_fiscal_{cliente.id}')
-                compra.status = request.form.get(f'status_{cliente.id}')
+                compra.data_compra = datetime.strptime(request.form.get(f'data_compra_{cliente.id}'), '%Y-%m-%d').date() if request.form.get(f'data_compra_{cliente.id}') else None
+                compra.produto = request.form.get(f'produto_{cliente.id}')
+                compra.quantidade = int(request.form.get(f'quantidade_{cliente.id}')) if request.form.get(f'quantidade_{cliente.id}') else None
+                compra.valor_total = float(request.form.get(f'valor_total_{cliente.id}')) if request.form.get(f'valor_total_{cliente.id}')) else None
+                compra.status_entrega = request.form.get(f'status_entrega_{cliente.id}')
             db.session.commit()
             return redirect(url_for('compras'))
         except Exception as e:
-            flash(f"Erro ao salvar compras: {e}")
+            flash(f"Erro ao salvar compras: {e}", 'danger')
     compras = Compra.query.all()
     clientes = Cliente.query.all()
     return render_template('compras.html', compras=compras, clientes=clientes)
