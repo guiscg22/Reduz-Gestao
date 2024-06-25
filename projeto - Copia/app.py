@@ -11,7 +11,7 @@ database_url = os.getenv('DATABASE_URL', 'sqlite:///site.db')
 if database_url.startswith("postgres://"):
     database_url = database_url.replace("postgres://", "postgresql://", 1)
     
-app.config['postgresql://reduzgestao_user:hAvAVESGXiKKUJfMjddrPWYoOo5oxftE@dpg-cpsvf0mehbks73eroe40-a.oregon-postgres.render.com/reduzgestao'] = os.getenv('DATABASE_URL', 'sqlite:///site.db')
+app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'sqlite:///site.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.secret_key = os.getenv('SECRET_KEY', 'supersecretkey')
 
