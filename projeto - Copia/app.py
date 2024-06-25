@@ -1,16 +1,16 @@
 import os
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, session, send_from_directory
 from flask_sqlalchemy import SQLAlchemy
+from flask_migrate import Migrate
 from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__)
 
-# Buscar a URL do banco de dados do ambiente e ajustar se necessário
 database_url = os.getenv('DATABASE_URL', 'sqlite:///site.db')
 if database_url.startswith("postgres://"):
     database_url = database_url.replace("postgres://", "postgresql://", 1)
-    
+
 app.config['SQLALCHEMY_DATABASE_URI'] = database_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.secret_key = os.getenv('SECRET_KEY', 'supersecretkey')
@@ -19,6 +19,7 @@ UPLOAD_FOLDER = os.getenv('UPLOAD_FOLDER', 'Comprovantes')
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 db = SQLAlchemy(app)
+migrate = Migrate(app, db)
 
 class Cliente(db.Model):
     id = db.Column(db.Integer, primary_key=True)
