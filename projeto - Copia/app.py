@@ -267,5 +267,12 @@ def financeiro():
     clientes = Cliente.query.all()
     return render_template('financeiro.html', financeiros=financeiros, clientes=clientes)
 
+@app.route('/listar_clientes')
+def listar_clientes():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    clientes = Cliente.query.all()
+    return render_template('listar_clientes.html', clientes=clientes)
+
 if __name__ == "__main__":
     app.run(debug=True)
