@@ -31,12 +31,15 @@ class User(db.Model):
 
 class Compra(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    cliente_id = db.Column(db.Integer, db.ForeignKey('cliente.id', ondelete='CASCADE'), nullable=False)
-    data_compra = db.Column(db.Date, nullable=True)
-    produto = db.Column(db.String(100), nullable=True)
-    quantidade = db.Column(db.Integer, nullable=True)
-    valor_total = db.Column(db.Float, nullable=True)
-    status_entrega = db.Column(db.String(50), nullable=True)
+    cliente_id = db.Column(db.Integer, db.ForeignKey('cliente.id'), nullable=False)
+    data_compra = db.Column(db.Date)
+    produto = db.Column(db.String(100))
+    quantidade = db.Column(db.Integer)
+    valor_total = db.Column(db.Float)
+    status_entrega = db.Column(db.String(50))
+
+    cliente = db.relationship('Cliente', back_populates='compras')
+
 
 class Obra(db.Model):
     id = db.Column(db.Integer, primary_key=True)
