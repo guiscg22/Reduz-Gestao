@@ -8,3 +8,4 @@ MarkupSafe==2.1.1
 SQLAlchemy==1.4.31
 click==8.0.4
 gunicorn
+psycopg2-binary
