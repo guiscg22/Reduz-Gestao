@@ -38,8 +38,6 @@ class Compra(db.Model):
     valor_total = db.Column(db.Float)
     status_entrega = db.Column(db.String(50))
 
-    cliente = db.relationship('Cliente', back_populates='compras')
-
 
 class Obra(db.Model):
     id = db.Column(db.Integer, primary_key=True)
