@@ -257,7 +257,7 @@ def financeiro():
                 financeiro.numero_nota_fiscal = request.form.get(f'numero_nota_fiscal_{cliente.id}')
                 financeiro.valor_fechado = float(request.form.get(f'valor_fechado_{cliente.id}')) if request.form.get(f'valor_fechado_{cliente.id}') else 0.0
                 financeiro.forma_pagamento = request.form.get(f'forma_pagamento_{cliente.id}')
-                financeiro.valor_recebido = float(request.form.get(f'valor_recebido_{cliente.id}')) if request.form.get(f'valor_recebido_{cliente.id}') else 0.0
+                financeiro.valor_recebido = float(request.form.get(f'valor_recebido_{cliente.id}')) if request.form.get(f'valor_recebido_{cliente.id}')) else 0.0
                 financeiro.observacao = request.form.get(f'observacao_{cliente.id}')
             db.session.commit()
             return redirect(url_for('financeiro'))
@@ -273,6 +273,25 @@ def listar_clientes():
         return redirect(url_for('login'))
     clientes = Cliente.query.all()
     return render_template('listar_clientes.html', clientes=clientes)
+
+@app.route('/usuarios', methods=['GET', 'POST'])
+def usuarios():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+        hashed_password = generate_password_hash(password, method='sha256')
+        novo_usuario = User(username=username, password=hashed_password)
+        try:
+            db.session.add(novo_usuario)
+            db.session.commit()
+            flash('Usuário adicionado com sucesso!', 'success')
+        except:
+            db.session.rollback()
+            flash('Erro ao adicionar usuário', 'error')
+    usuarios = User.query.all()
+    return render_template('usuarios.html', usuarios=usuarios)
 
 if __name__ == "__main__":
     app.run(debug=True)
