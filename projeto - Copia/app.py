@@ -1,17 +1,16 @@
 import os
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, session, send_from_directory
 from flask_sqlalchemy import SQLAlchemy
-from flask_migrate import Migrate
 from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
-from sqlalchemy.dialects.postgresql import VARCHAR
 
 app = Flask(__name__)
 
+# Buscar a URL do banco de dados do ambiente e ajustar se necessário
 database_url = os.getenv('DATABASE_URL', 'sqlite:///site.db')
 if database_url.startswith("postgres://"):
     database_url = database_url.replace("postgres://", "postgresql://", 1)
-
+    
 app.config['SQLALCHEMY_DATABASE_URI'] = database_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.secret_key = os.getenv('SECRET_KEY', 'supersecretkey')
@@ -20,7 +19,6 @@ UPLOAD_FOLDER = os.getenv('UPLOAD_FOLDER', 'Comprovantes')
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 db = SQLAlchemy(app)
-migrate = Migrate(app, db)
 
 class Cliente(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -124,7 +122,7 @@ def usuarios():
         return redirect(url_for('login'))
     if request.method == 'POST':
         username = request.form['username']
-        password = generate_password_hash(request.form['password'], method='pbkdf2:sha256')
+        password = generate_password_hash(request.form['password'])
         new_user = User(username=username, password=password)
         try:
             db.session.add(new_user)
@@ -143,7 +141,7 @@ def editar_usuario(id):
     if request.method == 'POST':
         user.username = request.form['username']
         if request.form['password']:
-            user.password = generate_password_hash(request.form['password'], method='pbkdf2:sha256')
+            user.password = generate_password_hash(request.form['password'])
         try:
             db.session.commit()
             flash('User updated successfully!', 'success')
@@ -168,9 +166,9 @@ def excluir_usuario(id):
 @app.before_request
 def before_request():
     if not User.query.filter_by(username='alisson').first():
-        db.session.add(User(username='alisson', password=generate_password_hash('123456', method='pbkdf2:sha256')))
+        db.session.add(User(username='alisson', password=generate_password_hash('123456')))
     if not User.query.filter_by(username='guilherme').first():
-        db.session.add(User(username='guilherme', password=generate_password_hash('123456', method='pbkdf2:sha256')))
+        db.session.add(User(username='guilherme', password=generate_password_hash('123456')))
     db.session.commit()
 
 @app.route('/clientes', methods=['GET', 'POST'])
@@ -386,7 +384,7 @@ def financeiro():
                     
                     comprovante = request.files.get(f'comprovante_{cliente.id}_new_{i}')
 
-                    if data_pagamento e forma_pagamento e valor:
+                    if data_pagamento and forma_pagamento and valor:
                         # Criar diretório do cliente se não existir
                         client_folder = os.path.join(app.config['UPLOAD_FOLDER'], str(cliente.id))
                         if not os.path.exists(client_folder):
