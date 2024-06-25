@@ -3,14 +3,13 @@ from flask import Flask, render_template, request, redirect, url_for, flash, jso
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
-import re
 
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'sqlite:///site.db').replace("postgres://", "postgresql://")
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///site.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.secret_key = 'supersecretkey'
 
-UPLOAD_FOLDER = 'Comprovantes'
+UPLOAD_FOLDER = 'C:/Users/Guilherme/Desktop/project - Copia - Copia - Copia/Comprovantes'
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 db = SQLAlchemy(app)
@@ -18,7 +17,7 @@ db = SQLAlchemy(app)
 class Cliente(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     nome = db.Column(db.String(100), nullable=False)
-    cpf = db.Column(db.String(14), unique=True, nullable=False)  # Ajustado para aceitar CPFs formatados
+    cpf = db.Column(db.String(14), unique=True, nullable=False)  # Adjusted for CPF format
     endereco = db.Column(db.String(200), nullable=False)
     compras = db.relationship('Compra', backref='cliente', cascade="all, delete-orphan", lazy=True)
     obras = db.relationship('Obra', backref='cliente', cascade="all, delete-orphan", lazy=True)
@@ -117,7 +116,7 @@ def usuarios():
         return redirect(url_for('login'))
     if request.method == 'POST':
         username = request.form['username']
-        password = generate_password_hash(request.form['password'])
+        password = generate_password_hash(request.form['password'], method='sha256')
         new_user = User(username=username, password=password)
         try:
             db.session.add(new_user)
@@ -136,7 +135,7 @@ def editar_usuario(id):
     if request.method == 'POST':
         user.username = request.form['username']
         if request.form['password']:
-            user.password = generate_password_hash(request.form['password'])
+            user.password = generate_password_hash(request.form['password'], method='sha256')
         try:
             db.session.commit()
             flash('User updated successfully!', 'success')
@@ -161,9 +160,9 @@ def excluir_usuario(id):
 @app.before_request
 def before_request():
     if not User.query.filter_by(username='alisson').first():
-        db.session.add(User(username='alisson', password=generate_password_hash('123456')))
+        db.session.add(User(username='alisson', password=generate_password_hash('123456', method='sha256')))
     if not User.query.filter_by(username='guilherme').first():
-        db.session.add(User(username='guilherme', password=generate_password_hash('123456')))
+        db.session.add(User(username='guilherme', password=generate_password_hash('123456', method='sha256')))
     db.session.commit()
 
 @app.route('/clientes', methods=['GET', 'POST'])
@@ -174,12 +173,6 @@ def clientes():
         nome = request.form['nome']
         cpf = request.form['cpf']
         endereco = request.form['endereco']
-
-        # Validação do CPF
-        if not re.match(r'\d{3}\.\d{3}\.\d{3}-\d{2}', cpf):
-            flash('CPF inválido. Use o formato 000.000.000-00.', 'danger')
-            return redirect(url_for('clientes'))
-
         novo_cliente = Cliente(nome=nome, cpf=cpf, endereco=endereco)
         try:
             db.session.add(novo_cliente)
@@ -199,12 +192,6 @@ def editar_cliente(id):
         cliente.nome = request.form['nome']
         cliente.cpf = request.form['cpf']
         cliente.endereco = request.form['endereco']
-
-        # Validação do CPF
-        if not re.match(r'\d{3}\.\d{3}\.\d{3}-\d{2}', cliente.cpf):
-            flash('CPF inválido. Use o formato 000.000.000-00.', 'danger')
-            return redirect(url_for('editar_cliente', id=id))
-
         try:
             db.session.commit()
             return redirect('/clientes')
@@ -244,11 +231,6 @@ def salvar_cliente():
     nome = request.form.get('nome')
     endereco = request.form.get('endereco')
     cpf = request.form.get('cpf')
-
-    # Validação do CPF
-    if not re.match(r'\d{3}\.\d{3}\.\d{3}-\d{2}', cpf):
-        flash('CPF inválido. Use o formato 000.000.000-00.', 'danger')
-        return redirect(url_for('listar_clientes'))
 
     novo_cliente = Cliente(nome=nome, endereco=endereco, cpf=cpf)
     try:
