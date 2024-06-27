@@ -5,7 +5,7 @@ from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///site.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'postgresql://reduzgestao_user:hAvAVESGXiKKUJfMjddrPWYoOo5oxftE@dpg-cpsvf0mehbks73eroe40-a.oregon-postgres.render.com/reduzgestao')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.secret_key = 'supersecretkey'
 
@@ -84,6 +84,15 @@ class Pagamento(db.Model):
     forma_pagamento = db.Column(db.String(50), nullable=False)
     valor = db.Column(db.Float, nullable=False)
     comprovante = db.Column(db.String(200), nullable=True)
+
+@app.before_first_request
+def test_connection():
+    try:
+        db.session.execute('SELECT 1')
+        app.logger.info("Conexão ao banco de dados bem-sucedida.")
+    except Exception as e:
+        app.logger.error(f"Erro ao conectar ao banco de dados: {e}")
+    
 
 @app.route('/')
 def index():
@@ -255,20 +264,32 @@ def compras():
                     compra = Compra(cliente_id=cliente.id)
                     db.session.add(compra)
                 
-                compra.data_compra = datetime.strptime(request.form.get(f'data_compra_{cliente.id}'), '%Y-%m-%d').date() if request.form.get(f'data_compra_{cliente.id}') else None
-                compra.produto = request.form.get(f'produto_{cliente.id}')
-                compra.quantidade = int(request.form.get(f'quantidade_{cliente.id}')) if request.form.get(f'quantidade_{cliente.id}') else 0
-                compra.valor_total = float(request.form.get(f'valor_total_{cliente.id}').replace(',', '.')) if request.form.get(f'valor_total_{cliente.id}') else 0.0
-                compra.status_entrega = request.form.get(f'status_entrega_{cliente.id}')
+                app.logger.info(f"Processando cliente ID: {cliente.id}")
+                
+                data_compra = request.form.get(f'data_compra_{cliente.id}')
+                produto = request.form.get(f'produto_{cliente.id}')
+                quantidade = request.form.get(f'quantidade_{cliente.id}')
+                valor_total = request.form.get(f'valor_total_{cliente.id}')
+                status_entrega = request.form.get(f'status_entrega_{cliente.id}')
+                
+                app.logger.info(f"Data da Compra: {data_compra}, Produto: {produto}, Quantidade: {quantidade}, Valor Total: {valor_total}, Status da Entrega: {status_entrega}")
+                
+                compra.data_compra = datetime.strptime(data_compra, '%Y-%m-%d').date() if data_compra else None
+                compra.produto = produto
+                compra.quantidade = int(quantidade) if quantidade else 0
+                compra.valor_total = float(valor_total.replace(',', '.')) if valor_total else 0.0
+                compra.status_entrega = status_entrega
                 
             db.session.commit()
             flash('Compras salvas com sucesso!', 'success')
             return redirect(url_for('compras'))
         except Exception as e:
             db.session.rollback()
+            app.logger.error(f"Erro ao salvar compras: {e}")
             flash(f"Erro ao salvar compras: {e}", 'danger')
     clientes = Cliente.query.all()
     return render_template('compras.html', clientes=clientes)
+
 
 
 
