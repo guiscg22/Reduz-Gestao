@@ -9,7 +9,7 @@ app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'postgresql://
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.secret_key = 'supersecretkey'
 
-UPLOAD_FOLDER = 'C:/Users/Guilherme/Desktop/project - Copia - Copia - Copia/Comprovantes'
+UPLOAD_FOLDER = os.getenv('UPLOAD_FOLDER', 'Comprovantes')
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 db = SQLAlchemy(app)
