@@ -5,6 +5,11 @@ from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__)
+
+database_url = os.getenv('DATABASE_URL', 'postgresql://reduzgestao_user:hAvAVESGXiKKUJfMjddrPWYoOo5oxftE@dpg-cpsvf0mehbks73eroe40-a.oregon-postgres.render.com/reduzgestao')
+if database_url.startswith("postgresql://reduzgestao_user:hAvAVESGXiKKUJfMjddrPWYoOo5oxftE@dpg-cpsvf0mehbks73eroe40-a.oregon-postgres.render.com/reduzgestao"):
+    database_url = database_url.replace("postgresql://reduzgestao_user:hAvAVESGXiKKUJfMjddrPWYoOo5oxftE@dpg-cpsvf0mehbks73eroe40-a.oregon-postgres.render.com/reduzgestao", "postgresql://reduzgestao_user:hAvAVESGXiKKUJfMjddrPWYoOo5oxftE@dpg-cpsvf0mehbks73eroe40-a.oregon-postgres.render.com/reduzgestao", 1)
+
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'postgresql://reduzgestao_user:hAvAVESGXiKKUJfMjddrPWYoOo5oxftE@dpg-cpsvf0mehbks73eroe40-a.oregon-postgres.render.com/reduzgestao')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.secret_key = 'supersecretkey'
