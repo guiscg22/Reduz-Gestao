@@ -3,17 +3,14 @@ from flask import Flask, render_template, request, redirect, url_for, flash, jso
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
-import sqlite3
 
 app = Flask(__name__)
-
-# Configure the database connection
 database_url = os.getenv('DATABASE_URL', 'postgresql://reduzgestao_user:hAvAVESGXiKKUJfMjddrPWYoOo5oxftE@dpg-cpsvf0mehbks73eroe40-a.oregon-postgres.render.com/reduzgestao')
 app.config['SQLALCHEMY_DATABASE_URI'] = database_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.secret_key = 'supersecretkey'
 
-UPLOAD_FOLDER = os.getenv('UPLOAD_FOLDER', 'Comprovantes')
+UPLOAD_FOLDER = 'C:/Users/Guilherme/Desktop/project - Copia - Copia - Copia/Comprovantes'
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 db = SQLAlchemy(app)
@@ -88,21 +85,6 @@ class Pagamento(db.Model):
     forma_pagamento = db.Column(db.String(50), nullable=False)
     valor = db.Column(db.Float, nullable=False)
     comprovante = db.Column(db.String(200), nullable=True)
-
-def get_db_connection():
-    conn = sqlite3.connect('database.db')
-    conn.row_factory = sqlite3.Row
-    return conn
-
-@app.before_first_request
-def test_connection():
-    try:
-        db.session.execute('SELECT 1')
-        app.logger.info("Conexão ao banco de dados bem-sucedida.")
-    except Exception as e:
-        app.logger.error(f"Erro ao conectar ao banco de dados: {e}")
-        
-    
 
 @app.route('/')
 def index():
@@ -264,36 +246,33 @@ def salvar_cliente():
 
 @app.route('/compras', methods=['GET', 'POST'])
 def compras():
-    conn = get_db_connection()
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
     if request.method == 'POST':
-        for key in request.form:
-            if key.startswith('data_compra_'):
-                cliente_id = key.split('_')[2]
-                data_compra = request.form[key]
-                produto = request.form[f'produto_{cliente_id}']
-                quantidade = request.form[f'quantidade_{cliente_id}']
-                valor_total = request.form[f'valor_total_{cliente_id}']
-                status_entrega = request.form[f'status_entrega_{cliente_id}']
+        try:
+            for cliente in Cliente.query.all():
+                compra = Compra.query.filter_by(cliente_id=cliente.id).first()
+                if not compra:
+                    compra = Compra(cliente_id=cliente.id)
+                    db.session.add(compra)
                 
-                print(f'Atualizando cliente {cliente_id}:')
-                print(f'Data da Compra: {data_compra}')
-                print(f'Produto: {produto}')
-                print(f'Quantidade: {quantidade}')
-                print(f'Valor Total: {valor_total}')
-                print(f'Status da Entrega: {status_entrega}')
-
-                conn.execute(
-                    'UPDATE compras SET data_compra = ?, produto = ?, quantidade = ?, valor_total = ?, status_entrega = ? WHERE cliente_id = ?',
-                    (data_compra, produto, quantidade, valor_total, status_entrega, cliente_id)
-                )
-        conn.commit()
-        conn.close()
-        return redirect(url_for('compras'))
-    
-    clientes = conn.execute('SELECT * FROM clientes').fetchall()
-    conn.close()
+                compra.data_compra = datetime.strptime(request.form.get(f'data_compra_{cliente.id}'), '%Y-%m-%d').date() if request.form.get(f'data_compra_{cliente.id}') else None
+                compra.produto = request.form.get(f'produto_{cliente.id}')
+                compra.quantidade = int(request.form.get(f'quantidade_{cliente.id}'))
+                compra.valor_total = float(request.form.get(f'valor_total_{cliente.id}').replace(',', '.'))
+                compra.status_entrega = request.form.get(f'status_entrega_{cliente.id}')
+                
+            db.session.commit()
+            flash('Compras salvas com sucesso!', 'success')
+            return redirect(url_for('compras'))
+        except Exception as e:
+            db.session.rollback()
+            flash(f"Erro ao salvar compras: {e}", 'danger')
+    clientes = Cliente.query.all()
     return render_template('compras.html', clientes=clientes)
-    
+
+
+
 @app.route('/obras', methods=['GET', 'POST'])
 def obras():
     if 'user_id' not in session:
