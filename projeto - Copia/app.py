@@ -259,43 +259,37 @@ def salvar_cliente():
 def compras():
     if 'user_id' not in session:
         return redirect(url_for('login'))
+    
     if request.method == 'POST':
-        try:
-            for cliente in Cliente.query.all():
-                compra = Compra.query.filter_by(cliente_id=cliente.id).first()
-                if not compra:
-                    compra = Compra(cliente_id=cliente.id)
-                    db.session.add(compra)
-                
-                app.logger.info(f"Processando cliente ID: {cliente.id}")
-                
-                data_compra = request.form.get(f'data_compra_{cliente.id}')
-                produto = request.form.get(f'produto_{cliente.id}')
-                quantidade = request.form.get(f'quantidade_{cliente.id}')
-                valor_total = request.form.get(f'valor_total_{cliente.id}')
-                status_entrega = request.form.get(f'status_entrega_{cliente.id}')
-                
-                app.logger.info(f"Data da Compra: {data_compra}, Produto: {produto}, Quantidade: {quantidade}, Valor Total: {valor_total}, Status da Entrega: {status_entrega}")
-                
-                compra.data_compra = datetime.strptime(data_compra, '%Y-%m-%d').date() if data_compra else None
-                compra.produto = produto
-                compra.quantidade = int(quantidade) if quantidade else 0
-                compra.valor_total = float(valor_total.replace(',', '.')) if valor_total else 0.0
-                compra.status_entrega = status_entrega
-                
-            db.session.commit()
-            flash('Compras salvas com sucesso!', 'success')
+        cliente_id = request.form.get('cliente_id')
+        data_compra = request.form.get('data_compra')
+        produto = request.form.get('produto')
+        quantidade = request.form.get('quantidade')
+        valor_total = request.form.get('valor_total')
+        status_entrega = request.form.get('status_entrega')
+        
+        if not cliente_id or not data_compra or not produto or not quantidade or not valor_total or not status_entrega:
+            flash('Todos os campos são obrigatórios', 'danger')
             return redirect(url_for('compras'))
+        
+        try:
+            nova_compra = Compra(
+                cliente_id=cliente_id,
+                data_compra=datetime.strptime(data_compra, '%Y-%m-%d'),
+                produto=produto,
+                quantidade=int(quantidade),
+                valor_total=float(valor_total),
+                status_entrega=status_entrega
+            )
+            db.session.add(nova_compra)
+            db.session.commit()
+            flash('Compra adicionada com sucesso!', 'success')
         except Exception as e:
             db.session.rollback()
-            app.logger.error(f"Erro ao salvar compras: {e}")
-            flash(f"Erro ao salvar compras: {e}", 'danger')
-    clientes = Cliente.query.all()
-    return render_template('compras.html', clientes=clientes)
-
-
-
-
+            flash(f'Erro ao adicionar compra: {e}', 'danger')
+    
+    compras = Compra.query.all()
+    return render_template('compras.html', compras=compras)
 
 @app.route('/obras', methods=['GET', 'POST'])
 def obras():
