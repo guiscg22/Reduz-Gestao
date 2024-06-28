@@ -3,6 +3,7 @@ from flask import Flask, render_template, request, redirect, url_for, flash, jso
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
+import sqlite3
 
 app = Flask(__name__)
 
@@ -88,6 +89,11 @@ class Pagamento(db.Model):
     valor = db.Column(db.Float, nullable=False)
     comprovante = db.Column(db.String(200), nullable=True)
 
+def get_db_connection():
+    conn = sqlite3.connect('database.db')
+    conn.row_factory = sqlite3.Row
+    return conn
+
 @app.before_first_request
 def test_connection():
     try:
@@ -95,6 +101,7 @@ def test_connection():
         app.logger.info("Conexão ao banco de dados bem-sucedida.")
     except Exception as e:
         app.logger.error(f"Erro ao conectar ao banco de dados: {e}")
+        
     
 
 @app.route('/')
@@ -257,40 +264,36 @@ def salvar_cliente():
 
 @app.route('/compras', methods=['GET', 'POST'])
 def compras():
-    if 'user_id' not in session:
-        return redirect(url_for('login'))
-    
+    conn = get_db_connection()
     if request.method == 'POST':
-        cliente_id = request.form.get('cliente_id')
-        data_compra = request.form.get('data_compra')
-        produto = request.form.get('produto')
-        quantidade = request.form.get('quantidade')
-        valor_total = request.form.get('valor_total')
-        status_entrega = request.form.get('status_entrega')
-        
-        if not cliente_id or not data_compra or not produto or not quantidade or not valor_total or not status_entrega:
-            flash('Todos os campos são obrigatórios', 'danger')
-            return redirect(url_for('compras'))
-        
-        try:
-            nova_compra = Compra(
-                cliente_id=cliente_id,
-                data_compra=datetime.strptime(data_compra, '%Y-%m-%d'),
-                produto=produto,
-                quantidade=int(quantidade),
-                valor_total=float(valor_total),
-                status_entrega=status_entrega
-            )
-            db.session.add(nova_compra)
-            db.session.commit()
-            flash('Compra adicionada com sucesso!', 'success')
-        except Exception as e:
-            db.session.rollback()
-            flash(f'Erro ao adicionar compra: {e}', 'danger')
-    
-    compras = Compra.query.all()
-    return render_template('compras.html', compras=compras)
+        for key in request.form:
+            if key.startswith('data_compra_'):
+                cliente_id = key.split('_')[2]
+                data_compra = request.form[key]
+                produto = request.form[f'produto_{cliente_id}']
+                quantidade = request.form[f'quantidade_{cliente_id}']
+                valor_total = request.form[f'valor_total_{cliente_id}']
+                status_entrega = request.form[f'status_entrega_{cliente_id}']
+                
+                print(f'Atualizando cliente {cliente_id}:')
+                print(f'Data da Compra: {data_compra}')
+                print(f'Produto: {produto}')
+                print(f'Quantidade: {quantidade}')
+                print(f'Valor Total: {valor_total}')
+                print(f'Status da Entrega: {status_entrega}')
 
+                conn.execute(
+                    'UPDATE compras SET data_compra = ?, produto = ?, quantidade = ?, valor_total = ?, status_entrega = ? WHERE cliente_id = ?',
+                    (data_compra, produto, quantidade, valor_total, status_entrega, cliente_id)
+                )
+        conn.commit()
+        conn.close()
+        return redirect(url_for('compras'))
+    
+    clientes = conn.execute('SELECT * FROM clientes').fetchall()
+    conn.close()
+    return render_template('compras.html', clientes=clientes)
+    
 @app.route('/obras', methods=['GET', 'POST'])
 def obras():
     if 'user_id' not in session:
