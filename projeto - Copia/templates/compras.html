@@ -1,30 +1,41 @@
-<table class="table table-bordered table-hover">
-  <thead>
-    <tr>
-      <th>ID</th>
-      <th>Nome</th>
-      <th>CPF</th>
-      <th>Endereço</th>
-      <th>Data da Compra</th>
-      <th>Produto</th>
-      <th>Quantidade</th>
-      <th>Valor Total</th>
-      <th>Status da Entrega</th>
-    </tr>
-  </thead>
-  <tbody>
-    {% for cliente in clientes %}
-    <tr>
-      <td>{{ cliente.id }}</td>
-      <td class="text-nowrap">{{ cliente.nome }}</td>
-      <td class="text-nowrap">{{ cliente.cpf }}</td>
-      <td class="text-nowrap">{{ cliente.endereco }}</td>
-      <td><input type="date" class="form-control" name="data_compra_{{ cliente.id }}" value="{{ cliente.compras[0].data_compra if cliente.compras else '' }}"></td>
-      <td><input type="text" class="form-control fixed-width-input" name="produto_{{ cliente.id }}" value="{{ cliente.compras[0].produto if cliente.compras else '' }}"></td>
-      <td><input type="number" class="form-control fixed-width-input" name="quantidade_{{ cliente.id }}" value="{{ cliente.compras[0].quantidade if cliente.compras else '' }}"></td>
-      <td><input type="text" class="form-control fixed-width-input" name="valor_total_{{ cliente.id }}" value="{{ cliente.compras[0].valor_total if cliente.compras else '' }}"></td>
-      <td><input type="text" class="form-control fixed-width-input" name="status_entrega_{{ cliente.id }}" value="{{ cliente.compras[0].status_entrega if cliente.compras else '' }}"></td>
-    </tr>
-    {% endfor %}
-  </tbody>
-</table>
+{% extends "base.html" %}
+{% block content %}
+<div class="container-fluid">
+  <h2 class="mb-4">Compras</h2>
+  <form method="POST" action="{{ url_for('compras') }}">
+    <div class="table-responsive">
+      <table class="table table-bordered table-hover">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Nome</th>
+            <th>CPF</th>
+            <th>Endereço</th>
+            <th>Data da Compra</th>
+            <th>Produto</th>
+            <th>Quantidade</th>
+            <th>Valor Total</th>
+            <th>Status da Entrega</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for cliente in clientes %}
+          <tr>
+            <td>{{ cliente.id }}</td>
+            <td class="text-nowrap">{{ cliente.nome }}</td>
+            <td class="text-nowrap">{{ cliente.cpf }}</td>
+            <td class="text-nowrap">{{ cliente.endereco }}</td>
+            <td><input type="date" class="form-control" name="data_compra_{{ cliente.id }}" value="{{ cliente.compras[0].data_compra if cliente.compras else '' }}"></td>
+            <td><input type="text" class="form-control fixed-width-input" name="produto_{{ cliente.id }}" value="{{ cliente.compras[0].produto if cliente.compras else '' }}"></td>
+            <td><input type="number" class="form-control fixed-width-input" name="quantidade_{{ cliente.id }}" value="{{ cliente.compras[0].quantidade if cliente.compras else '' }}"></td>
+            <td><input type="text" class="form-control fixed-width-input" name="valor_total_{{ cliente.id }}" value="{{ cliente.compras[0].valor_total if cliente.compras else '' }}"></td>
+            <td><input type="text" class="form-control fixed-width-input" name="status_entrega_{{ cliente.id }}" value="{{ cliente.compras[0].status_entrega if cliente.compras else '' }}"></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <button type="submit" class="btn btn-success mt-3">Salvar</button>
+  </form>
+</div>
+{% endblock %}
