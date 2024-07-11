@@ -12,8 +12,10 @@
             <th>CPF</th>
             <th>Endereço</th>
             <th>Data da Compra</th>
-            <th>Produto</th>
-            <th>Quantidade</th>
+            <th>Orçamento</th>
+            <th>Módulo</th>
+            <th>Inversor</th>
+            <th>Estrutura</th>
             <th>Valor Total</th>
             <th>Status da Entrega</th>
           </tr>
@@ -25,11 +27,18 @@
             <td class="text-nowrap">{{ cliente.nome }}</td>
             <td class="text-nowrap">{{ cliente.cpf }}</td>
             <td class="text-nowrap">{{ cliente.endereco }}</td>
-            <td><input type="date" class="form-control" name="data_compra_{{ cliente.id }}" value="{{ cliente.compras[0].data_compra if cliente.compras|length > 0 else '' }}"></td>
-            <td><input type="text" class="form-control fixed-width-input" name="produto_{{ cliente.id }}" value="{{ cliente.compras[0].produto if cliente.compras|length > 0 else '' }}"></td>
-            <td><input type="number" class="form-control fixed-width-input" name="quantidade_{{ cliente.id }}" value="{{ cliente.compras[0].quantidade if cliente.compras|length > 0 else '' }}"></td>
-            <td><input type="text" class="form-control fixed-width-input" name="valor_total_{{ cliente.id }}" value="{{ cliente.compras[0].valor_total if cliente.compras|length > 0 else '' }}"></td>
-            <td><input type="text" class="form-control fixed-width-input" name="status_entrega_{{ cliente.id }}" value="{{ cliente.compras[0].status_entrega if cliente.compras|length > 0 else '' }}"></td>
+            <td><input type="date" class="form-control" name="data_compra_{{ cliente.id }}" value="{{ cliente.compras[0].data_compra if cliente.compras and cliente.compras[0].data_compra else '' }}"></td>
+            <td><input type="text" class="form-control fixed-width-input" name="orcamento_{{ cliente.id }}" value="{{ cliente.compras[0].orcamento if cliente.compras else '' }}"></td>
+            <td><input type="text" class="form-control fixed-width-input" name="modulo_{{ cliente.id }}" value="{{ cliente.compras[0].modulo if cliente.compras else '' }}"></td>
+            <td><input type="text" class="form-control fixed-width-input" name="inversor_{{ cliente.id }}" value="{{ cliente.compras[0].inversor if cliente.compras else '' }}"></td>
+            <td><input type="text" class="form-control fixed-width-input" name="estrutura_{{ cliente.id }}" value="{{ cliente.compras[0].estrutura if cliente.compras else '' }}"></td>
+            <td><input type="text" class="form-control fixed-width-input" name="valor_total_{{ cliente.id }}" value="{{ '{:,.2f}'.format(cliente.compras[0].valor_total).replace(',', 'X').replace('.', ',').replace('X', '.') if cliente.compras and cliente.compras[0].valor_total else '' }}"></td>
+            <td>
+              <select class="form-control" name="status_entrega_{{ cliente.id }}">
+                <option value="Pendente" {% if cliente.compras and cliente.compras[0].status_entrega == 'Pendente' %}selected{% endif %}>Pendente</option>
+                <option value="Comprado" {% if cliente.compras and cliente.compras[0].status_entrega == 'Comprado' %}selected{% endif %}>Comprado</option>
+              </select>
+            </td>
           </tr>
           {% endfor %}
         </tbody>
