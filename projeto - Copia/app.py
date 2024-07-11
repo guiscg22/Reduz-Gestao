@@ -267,7 +267,10 @@ def compras():
             flash(f"Erro ao salvar compras: {e}", 'danger')
 
     clientes = Cliente.query.all()
+    for cliente in clientes:
+        cliente.compras = Compra.query.filter_by(cliente_id=cliente.id).all()
     return render_template('compras.html', clientes=clientes)
+
 
 @app.route('/obras', methods=['GET', 'POST'])
 def obras():
