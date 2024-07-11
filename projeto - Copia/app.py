@@ -1,8 +1,8 @@
+import os
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, session, send_from_directory
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
-import os
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///site.db'
@@ -38,6 +38,7 @@ class Compra(db.Model):
     estrutura = db.Column(db.String(100), nullable=True)
     valor_total = db.Column(db.Float, nullable=True)
     status_entrega = db.Column(db.String(20), nullable=True)
+    data_compra = db.Column(db.Date, nullable=True)
 
 class Obra(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -75,8 +76,8 @@ class Financeiro(db.Model):
     numero_orcamento = db.Column(db.String(100), nullable=True)
     numero_nota_fiscal = db.Column(db.String(100), nullable=True)
     valor_fechado = db.Column(db.Float, nullable=True)
-    observacao = db.Column(db.Text, nullable=True)
     valor_recebido = db.Column(db.Float, nullable=True, default=0.0)
+    observacao = db.Column(db.Text, nullable=True)
     pagamentos = db.relationship('Pagamento', backref='financeiro', cascade="all, delete-orphan", lazy=True)
 
 class Pagamento(db.Model):
@@ -198,52 +199,20 @@ def editar_cliente(id):
             db.session.commit()
             return redirect('/clientes')
         except:
-            flash('Erro ao editar cliente')
+            flash('Erro ao atualizar cliente')
     return render_template('editar_cliente.html', cliente=cliente)
 
-@app.route('/clientes/excluir/<int:id>', methods=['GET', 'POST'])
+@app.route('/clientes/excluir/<int:id>', methods=['POST'])
 def excluir_cliente(id):
     if 'user_id' not in session:
         return redirect(url_for('login'))
+    cliente = Cliente.query.get_or_404(id)
     try:
-        cliente = Cliente.query.get(id)
-        if cliente:
-            db.session.delete(cliente)
-            db.session.commit()
-            flash('Cliente excluído com sucesso!', 'success')
-        else:
-            flash('Cliente não encontrado.', 'error')
-    except Exception as e:
-        db.session.rollback()
-        flash(f'Erro ao excluir cliente: {e}', 'error')
-    finally:
-        return redirect(url_for('listar_clientes'))
-
-@app.route('/clientes')
-def listar_clientes():
-    if 'user_id' not in session:
-        return redirect(url_for('login'))
-    clientes = Cliente.query.all()
-    return render_template('listar_clientes.html', clientes=clientes)
-
-@app.route('/clientes/salvar', methods=['POST'])
-def salvar_cliente():
-    if 'user_id' not in session:
-        return redirect(url_for('login'))
-    nome = request.form.get('nome')
-    endereco = request.form.get('endereco')
-    cpf = request.form.get('cpf')
-
-    novo_cliente = Cliente(nome=nome, endereco=endereco, cpf=cpf)
-    try:
-        db.session.add(novo_cliente)
+        db.session.delete(cliente)
         db.session.commit()
-        flash('Cliente salvo com sucesso!', 'success')
-    except Exception as e:
-        db.session.rollback()
-        flash(f'Erro ao salvar cliente: {e}', 'error')
-
-    return redirect(url_for('listar_clientes'))
+        return redirect('/clientes')
+    except:
+        flash('Erro ao excluir cliente')
 
 @app.route('/compras', methods=['GET', 'POST'])
 def compras():
@@ -288,6 +257,7 @@ def compras():
 def obras():
     if 'user_id' not in session:
         return redirect(url_for('login'))
+
     if request.method == 'POST':
         try:
             for cliente in Cliente.query.all():
@@ -295,26 +265,36 @@ def obras():
                 if not obra:
                     obra = Obra(cliente_id=cliente.id)
                     db.session.add(obra)
-                
-                obra.modulo = request.form.get(f'modulo_{cliente.id}')
-                obra.inversor = request.form.get(f'inversor_{cliente.id}')
-                obra.estrutura = request.form.get(f'estrutura_{cliente.id}')
-                obra.pago = bool(request.form.get(f'pago_{cliente.id}'))
-                obra.obra_interna_concluida = bool(request.form.get(f'obra_interna_concluida_{cliente.id}'))
-                obra.data_instalacao = datetime.strptime(request.form.get(f'data_instalacao_{cliente.id}'), '%Y-%m-%d').date() if request.form.get(f'data_instalacao_{cliente.id}') else None
-                obra.status = request.form.get(f'status_{cliente.id}')
+
+                obra.modulo = request.form.get(f'modulo_{cliente.id}') or ''
+                obra.inversor = request.form.get(f'inversor_{cliente.id}') or ''
+                obra.estrutura = request.form.get(f'estrutura_{cliente.id}') or ''
+                obra.pago = 'pago' in request.form.getlist(f'pago_{cliente.id}')
+                obra.obra_interna_concluida = 'obra_interna_concluida' in request.form.getlist(f'obra_interna_concluida_{cliente.id}')
+                obra.status = request.form.get(f'status_{cliente.id}') or ''
+
+                data_instalacao = request.form.get(f'data_instalacao_{cliente.id}')
+                if data_instalacao:
+                    obra.data_instalacao = datetime.strptime(data_instalacao, '%Y-%m-%d').date()
+                else:
+                    obra.data_instalacao = None
+
             db.session.commit()
-            return redirect(url_for('obras'))
+            flash('Obras salvas com sucesso!', 'success')
         except Exception as e:
-            flash(f"Erro ao salvar obras: {e}")
-    obras = Obra.query.all()
+            db.session.rollback()
+            flash(f"Erro ao salvar obras: {e}", 'danger')
+
     clientes = Cliente.query.all()
-    return render_template('obras.html', obras=obras, clientes=clientes)
+    for cliente in clientes:
+        cliente.obras = Obra.query.filter_by(cliente_id=cliente.id).all()
+    return render_template('obras.html', clientes=clientes)
 
 @app.route('/engenharia', methods=['GET', 'POST'])
 def engenharia():
     if 'user_id' not in session:
         return redirect(url_for('login'))
+
     if request.method == 'POST':
         try:
             for cliente in Cliente.query.all():
@@ -322,33 +302,43 @@ def engenharia():
                 if not engenharia:
                     engenharia = Engenharia(cliente_id=cliente.id)
                     db.session.add(engenharia)
-                
-                engenharia.documentos_comercial = 'documentos_comercial_' + str(cliente.id) in request.form
-                engenharia.analise_documentos = 'analise_documentos_' + str(cliente.id) in request.form
-                engenharia.formulario_acesso_comercial = 'formulario_acesso_comercial_' + str(cliente.id) in request.form
-                engenharia.procuracao_assinada = 'procuracao_assinada_' + str(cliente.id) in request.form
-                engenharia.emissao_pagamento_art = 'emissao_pagamento_art_' + str(cliente.id) in request.form
-                engenharia.enviado_cemig = 'enviado_cemig_' + str(cliente.id) in request.form
-                engenharia.projeto_aprovado = 'projeto_aprovado_' + str(cliente.id) in request.form
-                engenharia.obra_cemig_concluida = 'obra_cemig_concluida_' + str(cliente.id) in request.form
-                engenharia.obra_interna_concluida = 'obra_interna_concluida_' + str(cliente.id) in request.form
-                engenharia.vistoria_solicitada = 'vistoria_solicitada_' + str(cliente.id) in request.form
-                engenharia.vistoria_aprovada = 'vistoria_aprovada_' + str(cliente.id) in request.form
-                engenharia.observacao = request.form.get(f'observacao_{cliente.id}')
-                engenharia.status = request.form.get(f'status_{cliente.id}')
-                engenharia.data_limite_parecer = datetime.strptime(request.form.get(f'data_limite_parecer_{cliente.id}'), '%Y-%m-%d').date() if request.form.get(f'data_limite_parecer_{cliente.id}') else None
+
+                engenharia.documentos_comercial = 'documentos_comercial' in request.form.getlist(f'documentos_comercial_{cliente.id}')
+                engenharia.analise_documentos = 'analise_documentos' in request.form.getlist(f'analise_documentos_{cliente.id}')
+                engenharia.formulario_acesso_comercial = 'formulario_acesso_comercial' in request.form.getlist(f'formulario_acesso_comercial_{cliente.id}')
+                engenharia.procuracao_assinada = 'procuracao_assinada' in request.form.getlist(f'procuracao_assinada_{cliente.id}')
+                engenharia.emissao_pagamento_art = 'emissao_pagamento_art' in request.form.getlist(f'emissao_pagamento_art_{cliente.id}')
+                engenharia.enviado_cemig = 'enviado_cemig' in request.form.getlist(f'enviado_cemig_{cliente.id}')
+                engenharia.projeto_aprovado = 'projeto_aprovado' in request.form.getlist(f'projeto_aprovado_{cliente.id}')
+                engenharia.obra_cemig_concluida = 'obra_cemig_concluida' in request.form.getlist(f'obra_cemig_concluida_{cliente.id}')
+                engenharia.obra_interna_concluida = 'obra_interna_concluida' in request.form.getlist(f'obra_interna_concluida_{cliente.id}')
+                engenharia.vistoria_solicitada = 'vistoria_solicitada' in request.form.getlist(f'vistoria_solicitada_{cliente.id}')
+                engenharia.vistoria_aprovada = 'vistoria_aprovada' in request.form.getlist(f'vistoria_aprovada_{cliente.id}')
+                engenharia.observacao = request.form.get(f'observacao_{cliente.id}') or ''
+                engenharia.status = request.form.get(f'status_{cliente.id}') or ''
+
+                data_limite_parecer = request.form.get(f'data_limite_parecer_{cliente.id}')
+                if data_limite_parecer:
+                    engenharia.data_limite_parecer = datetime.strptime(data_limite_parecer, '%Y-%m-%d').date()
+                else:
+                    engenharia.data_limite_parecer = None
+
             db.session.commit()
-            return redirect(url_for('engenharia'))
+            flash('Engenharia salva com sucesso!', 'success')
         except Exception as e:
-            flash(f"Erro ao salvar engenharia: {e}")
-    engenharias = Engenharia.query.all()
+            db.session.rollback()
+            flash(f"Erro ao salvar engenharia: {e}", 'danger')
+
     clientes = Cliente.query.all()
-    return render_template('engenharia.html', engenharias=engenharias, clientes=clientes)
+    for cliente in clientes:
+        cliente.engenharias = Engenharia.query.filter_by(cliente_id=cliente.id).all()
+    return render_template('engenharia.html', clientes=clientes)
 
 @app.route('/financeiro', methods=['GET', 'POST'])
 def financeiro():
     if 'user_id' not in session:
         return redirect(url_for('login'))
+
     if request.method == 'POST':
         try:
             for cliente in Cliente.query.all():
@@ -357,59 +347,33 @@ def financeiro():
                     financeiro = Financeiro(cliente_id=cliente.id)
                     db.session.add(financeiro)
 
-                financeiro.data_fechamento = datetime.strptime(request.form.get(f'data_fechamento_{cliente.id}'), '%Y-%m-%d').date() if request.form.get(f'data_fechamento_{cliente.id}') else None
-                financeiro.numero_orcamento = request.form.get(f'numero_orcamento_{cliente.id}')
-                financeiro.numero_nota_fiscal = request.form.get(f'numero_nota_fiscal_{cliente.id}')
-                
+                data_fechamento = request.form.get(f'data_fechamento_{cliente.id}')
+                if data_fechamento:
+                    financeiro.data_fechamento = datetime.strptime(data_fechamento, '%Y-%m-%d').date()
+                else:
+                    financeiro.data_fechamento = None
+
+                financeiro.numero_orcamento = request.form.get(f'numero_orcamento_{cliente.id}') or ''
+                financeiro.numero_nota_fiscal = request.form.get(f'numero_nota_fiscal_{cliente.id}') or ''
+
                 valor_fechado_str = request.form.get(f'valor_fechado_{cliente.id}')
-                financeiro.valor_fechado = float(valor_fechado_str.replace('.', '').replace(',', '.')) if valor_fechado_str else 0
-                
-                financeiro.observacao = request.form.get(f'observacao_{cliente.id}')
+                financeiro.valor_fechado = float(valor_fechado_str.replace('.', '').replace(',', '.')) if valor_fechado_str else None
 
-                # Reset valor recebido antes de calcular
-                financeiro.valor_recebido = 0
-                pagamentos = Pagamento.query.filter_by(financeiro_id=financeiro.id).all()
+                valor_recebido_str = request.form.get(f'valor_recebido_{cliente.id}')
+                financeiro.valor_recebido = float(valor_recebido_str.replace('.', '').replace(',', '.')) if valor_recebido_str else None
 
-                # Remover pagamentos marcados
-                removed_payments = [key.split('_')[2] for key, value in request.form.items() if key.startswith('removed_') and value == 'true']
-                for pagamento in pagamentos:
-                    if str(pagamento.id) in removed_payments:
-                        db.session.delete(pagamento)
-                    else:
-                        pagamento.data_pagamento = datetime.strptime(request.form.get(f'data_pagamento_{cliente.id}_{pagamento.id}'), '%Y-%m-%d').date()
-                        pagamento.forma_pagamento = request.form.get(f'forma_pagamento_{cliente.id}_{pagamento.id}')
-                        
-                        valor_pagamento_str = request.form.get(f'valor_pagamento_{cliente.id}_{pagamento.id}')
-                        pagamento.valor = float(valor_pagamento_str.replace('.', '').replace(',', '.')) if valor_pagamento_str else 0
-                        
-                        financeiro.valor_recebido += pagamento.valor
-
-                # Adicionar novos pagamentos
-                num_pagamentos = int(request.form.get(f'num_pagamentos_{cliente.id}', 0))
-                for i in range(num_pagamentos):
-                    novo_pagamento = Pagamento(
-                        financeiro_id=financeiro.id,
-                        data_pagamento=datetime.strptime(request.form.get(f'new_data_pagamento_{cliente.id}_{i}'), '%Y-%m-%d').date(),
-                        forma_pagamento=request.form.get(f'new_forma_pagamento_{cliente.id}_{i}'),
-                        valor=float(request.form.get(f'new_valor_pagamento_{cliente.id}_{i}').replace('.', '').replace(',', '.'))
-                    )
-                    db.session.add(novo_pagamento)
-                    financeiro.valor_recebido += novo_pagamento.valor
+                financeiro.observacao = request.form.get(f'observacao_{cliente.id}') or ''
 
             db.session.commit()
-            flash('Financeiro salvo com sucesso!', 'success')
+            flash('Dados financeiros salvos com sucesso!', 'success')
         except Exception as e:
             db.session.rollback()
-            flash(f"Erro ao salvar financeiro: {e}", 'danger')
+            flash(f"Erro ao salvar dados financeiros: {e}", 'danger')
 
     clientes = Cliente.query.all()
     for cliente in clientes:
         cliente.financeiros = Financeiro.query.filter_by(cliente_id=cliente.id).all()
     return render_template('financeiro.html', clientes=clientes)
-
-@app.route('/financeiro/download/<filename>')
-def download_comprovante(filename):
-    return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
 if __name__ == '__main__':
     app.run(debug=True)
