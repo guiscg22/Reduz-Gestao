@@ -1,8 +1,8 @@
-import os
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, session, send_from_directory
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
+import os
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///site.db'
@@ -17,7 +17,7 @@ db = SQLAlchemy(app)
 class Cliente(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     nome = db.Column(db.String(100), nullable=False)
-    cpf = db.Column(db.String(14), unique=True, nullable=False)  # Ajustado para o formato do CPF
+    cpf = db.Column(db.String(14), unique=True, nullable=False)  # Adjusted for CPF format
     endereco = db.Column(db.String(200), nullable=False)
     compras = db.relationship('Compra', backref='cliente', cascade="all, delete-orphan", lazy=True)
     obras = db.relationship('Obra', backref='cliente', cascade="all, delete-orphan", lazy=True)
@@ -32,7 +32,6 @@ class User(db.Model):
 class Compra(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     cliente_id = db.Column(db.Integer, db.ForeignKey('cliente.id', ondelete='CASCADE'), nullable=False)
-    data_compra = db.Column(db.Date, nullable=True)
     orcamento = db.Column(db.String(100), nullable=True)
     modulo = db.Column(db.String(100), nullable=True)
     inversor = db.Column(db.String(100), nullable=True)
@@ -76,8 +75,8 @@ class Financeiro(db.Model):
     numero_orcamento = db.Column(db.String(100), nullable=True)
     numero_nota_fiscal = db.Column(db.String(100), nullable=True)
     valor_fechado = db.Column(db.Float, nullable=True)
-    valor_recebido = db.Column(db.Float, nullable=True, default=0.0)
     observacao = db.Column(db.Text, nullable=True)
+    valor_recebido = db.Column(db.Float, nullable=True, default=0.0)
     pagamentos = db.relationship('Pagamento', backref='financeiro', cascade="all, delete-orphan", lazy=True)
 
 class Pagamento(db.Model):
@@ -119,7 +118,7 @@ def usuarios():
         return redirect(url_for('login'))
     if request.method == 'POST':
         username = request.form['username']
-        password = generate_password_hash(request.form['password'])
+        password = generate_password_hash(request.form['password'], method='sha256')
         new_user = User(username=username, password=password)
         try:
             db.session.add(new_user)
@@ -138,7 +137,7 @@ def editar_usuario(id):
     if request.method == 'POST':
         user.username = request.form['username']
         if request.form['password']:
-            user.password = generate_password_hash(request.form['password'])
+            user.password = generate_password_hash(request.form['password'], method='sha256')
         try:
             db.session.commit()
             flash('User updated successfully!', 'success')
@@ -163,9 +162,9 @@ def excluir_usuario(id):
 @app.before_request
 def before_request():
     if not User.query.filter_by(username='alisson').first():
-        db.session.add(User(username='alisson', password=generate_password_hash('123456')))
+        db.session.add(User(username='alisson', password=generate_password_hash('123456', method='sha256')))
     if not User.query.filter_by(username='guilherme').first():
-        db.session.add(User(username='guilherme', password=generate_password_hash('123456')))
+        db.session.add(User(username='guilherme', password=generate_password_hash('123456', method='sha256')))
     db.session.commit()
 
 @app.route('/clientes', methods=['GET', 'POST'])
@@ -265,8 +264,10 @@ def compras():
                 else:
                     compra.data_compra = None
 
-                compra.produto = request.form.get(f'produto_{cliente.id}') or ''
-                compra.quantidade = request.form.get(f'quantidade_{cliente.id}') or None
+                compra.orcamento = request.form.get(f'orcamento_{cliente.id}') or ''
+                compra.modulo = request.form.get(f'modulo_{cliente.id}') or ''
+                compra.inversor = request.form.get(f'inversor_{cliente.id}') or ''
+                compra.estrutura = request.form.get(f'estrutura_{cliente.id}') or ''
 
                 valor_total_str = request.form.get(f'valor_total_{cliente.id}')
                 compra.valor_total = float(valor_total_str.replace('.', '').replace(',', '.')) if valor_total_str else None
@@ -385,72 +386,30 @@ def financeiro():
 
                 # Adicionar novos pagamentos
                 num_pagamentos = int(request.form.get(f'num_pagamentos_{cliente.id}', 0))
-                for i in range(1, num_pagamentos + 1):
-                    data_pagamento = datetime.strptime(request.form.get(f'data_pagamento_{cliente.id}_new_{i}'), '%Y-%m-%d').date() if request.form.get(f'data_pagamento_{cliente.id}_new_{i}') else None
-                    forma_pagamento = request.form.get(f'forma_pagamento_{cliente.id}_new_{i}')
-                    
-                    valor_pagamento_str = request.form.get(f'valor_pagamento_{cliente.id}_new_{i}')
-                    valor = float(valor_pagamento_str.replace('.', '').replace(',', '.')) if valor_pagamento_str else 0
-                                        
-                    comprovante = request.files.get(f'comprovante_{cliente.id}_new_{i}')
-
-                    if data_pagamento and forma_pagamento and valor:
-                        # Criar diretório do cliente se não existir
-                        client_folder = os.path.join(app.config['UPLOAD_FOLDER'], str(cliente.id))
-                        if not os.path.exists(client_folder):
-                            os.makedirs(client_folder)
-
-                        comprovante_filename = None
-                        if comprovante:
-                            comprovante_filename = f'{cliente.id}_{comprovante.filename}'
-                            comprovante.save(os.path.join(client_folder, comprovante_filename))
-
-                        pagamento = Pagamento(
-                            financeiro_id=financeiro.id,
-                            data_pagamento=data_pagamento,
-                            forma_pagamento=forma_pagamento,
-                            valor=valor,
-                            comprovante=comprovante_filename
-                        )
-                        db.session.add(pagamento)
-                        financeiro.valor_recebido += valor
+                for i in range(num_pagamentos):
+                    novo_pagamento = Pagamento(
+                        financeiro_id=financeiro.id,
+                        data_pagamento=datetime.strptime(request.form.get(f'new_data_pagamento_{cliente.id}_{i}'), '%Y-%m-%d').date(),
+                        forma_pagamento=request.form.get(f'new_forma_pagamento_{cliente.id}_{i}'),
+                        valor=float(request.form.get(f'new_valor_pagamento_{cliente.id}_{i}').replace('.', '').replace(',', '.'))
+                    )
+                    db.session.add(novo_pagamento)
+                    financeiro.valor_recebido += novo_pagamento.valor
 
             db.session.commit()
-            flash('Dados financeiros salvos com sucesso!', 'success')
-            return redirect(url_for('financeiro'))
+            flash('Financeiro salvo com sucesso!', 'success')
         except Exception as e:
             db.session.rollback()
-            flash(f"Erro ao salvar financeiro: {e}", 'error')
-    financeiros = Financeiro.query.all()
+            flash(f"Erro ao salvar financeiro: {e}", 'danger')
+
     clientes = Cliente.query.all()
+    for cliente in clientes:
+        cliente.financeiros = Financeiro.query.filter_by(cliente_id=cliente.id).all()
+    return render_template('financeiro.html', clientes=clientes)
 
-    total_valor_fechado = sum(f.valor_fechado for f in financeiros if f.valor_fechado)
-    total_valor_recebido = sum(f.valor_recebido for f in financeiros if f.valor_recebido)
-    diferenca = total_valor_fechado - total_valor_recebido
-
-    return render_template('financeiro.html', financeiros=financeiros, clientes=clientes, total_valor_fechado=total_valor_fechado, total_valor_recebido=total_valor_recebido, diferenca=diferenca)
-
-@app.route('/delete_payment/<int:payment_id>', methods=['POST'])
-def delete_payment(payment_id):
-    if 'user_id' not in session:
-        return redirect(url_for('login'))
-    try:
-        pagamento = Pagamento.query.get(payment_id)
-        if pagamento:
-            db.session.delete(pagamento)
-            db.session.commit()
-            return jsonify({"success": True})
-        return jsonify({"success": False, "message": "Pagamento não encontrado"}), 404
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({"success": False, "message": str(e)}), 500
-
-@app.route('/comprovantes/<int:cliente_id>/<filename>')
-def get_comprovante(cliente_id, filename):
-    client_folder = os.path.join(app.config['UPLOAD_FOLDER'], str(cliente_id))
-    return send_from_directory(client_folder, filename)
+@app.route('/financeiro/download/<filename>')
+def download_comprovante(filename):
+    return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
 if __name__ == '__main__':
-    with app.app_context():
-        db.create_all()
     app.run(debug=True)
