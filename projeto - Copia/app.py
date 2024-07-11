@@ -269,9 +269,6 @@ def compras():
     clientes = Cliente.query.all()
     return render_template('compras.html', clientes=clientes)
 
-
-
-
 @app.route('/obras', methods=['GET', 'POST'])
 def obras():
     if 'user_id' not in session:
