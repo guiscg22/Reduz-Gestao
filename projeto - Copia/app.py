@@ -17,7 +17,7 @@ db = SQLAlchemy(app)
 class Cliente(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     nome = db.Column(db.String(100), nullable=False)
-    cpf = db.Column(db.String(14), unique=True, nullable=False)  # Adjusted for CPF format
+    cpf = db.Column(db.String(14), unique=True, nullable=False)
     endereco = db.Column(db.String(200), nullable=False)
     compras = db.relationship('Compra', backref='cliente', cascade="all, delete-orphan", lazy=True)
     obras = db.relationship('Obra', backref='cliente', cascade="all, delete-orphan", lazy=True)
@@ -32,9 +32,11 @@ class User(db.Model):
 class Compra(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     cliente_id = db.Column(db.Integer, db.ForeignKey('cliente.id', ondelete='CASCADE'), nullable=False)
-    orcamento = db.Column(db.String(100), nullable=True)
-    nota_fiscal = db.Column(db.String(100), nullable=True)
-    status = db.Column(db.String(20), nullable=True)
+    data_compra = db.Column(db.String(20), nullable=True)
+    produto = db.Column(db.String(100), nullable=True)
+    quantidade = db.Column(db.Integer, nullable=True)
+    valor_total = db.Column(db.Float, nullable=True)
+    status_entrega = db.Column(db.String(50), nullable=True)
 
 class Obra(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -199,49 +201,18 @@ def editar_cliente(id):
             flash('Erro ao editar cliente')
     return render_template('editar_cliente.html', cliente=cliente)
 
-@app.route('/clientes/excluir/<int:id>', methods=['GET', 'POST'])
+@app.route('/clientes/excluir/<int:id>', methods=['POST'])
 def excluir_cliente(id):
     if 'user_id' not in session:
         return redirect(url_for('login'))
+    cliente = Cliente.query.get_or_404(id)
     try:
-        cliente = Cliente.query.get(id)
-        if cliente:
-            db.session.delete(cliente)
-            db.session.commit()
-            flash('Cliente excluído com sucesso!', 'success')
-        else:
-            flash('Cliente não encontrado.', 'error')
-    except Exception as e:
-        db.session.rollback()
-        flash(f'Erro ao excluir cliente: {e}', 'error')
-    finally:
-        return redirect(url_for('listar_clientes'))
-
-@app.route('/clientes')
-def listar_clientes():
-    if 'user_id' not in session:
-        return redirect(url_for('login'))
-    clientes = Cliente.query.all()
-    return render_template('listar_clientes.html', clientes=clientes)
-
-@app.route('/clientes/salvar', methods=['POST'])
-def salvar_cliente():
-    if 'user_id' not in session:
-        return redirect(url_for('login'))
-    nome = request.form.get('nome')
-    endereco = request.form.get('endereco')
-    cpf = request.form.get('cpf')
-
-    novo_cliente = Cliente(nome=nome, endereco=endereco, cpf=cpf)
-    try:
-        db.session.add(novo_cliente)
+        db.session.delete(cliente)
         db.session.commit()
-        flash('Cliente salvo com sucesso!', 'success')
+        flash('Cliente excluído com sucesso!', 'success')
     except Exception as e:
-        db.session.rollback()
-        flash(f'Erro ao salvar cliente: {e}', 'error')
-
-    return redirect(url_for('listar_clientes'))
+        flash(f'Erro ao excluir cliente: {e}', 'danger')
+    return redirect(url_for('clientes'))
 
 @app.route('/compras', methods=['GET', 'POST'])
 def compras():
@@ -270,7 +241,6 @@ def compras():
     for cliente in clientes:
         cliente.compras = Compra.query.filter_by(cliente_id=cliente.id).all()
     return render_template('compras.html', clientes=clientes)
-
 
 @app.route('/obras', methods=['GET', 'POST'])
 def obras():
@@ -384,7 +354,7 @@ def financeiro():
                     
                     comprovante = request.files.get(f'comprovante_{cliente.id}_new_{i}')
 
-                    if data_pagamento and forma_pagamento and valor:
+                    if data_pagamento and forma_pagamento e valor:
                         # Criar diretório do cliente se não existir
                         client_folder = os.path.join(app.config['UPLOAD_FOLDER'], str(cliente.id))
                         if not os.path.exists(client_folder):
@@ -414,8 +384,8 @@ def financeiro():
     financeiros = Financeiro.query.all()
     clientes = Cliente.query.all()
 
-    total_valor_fechado = sum(f.valor_fechado for f in financeiros if f.valor_fechado)
-    total_valor_recebido = sum(f.valor_recebido for f in financeiros if f.valor_recebido)
+    total_valor_fechado = sum(f.valor_fechado for f in financeiros se f.valor_fechado)
+    total_valor_recebido = sum(f.valor_recebido for f in financeiros se f.valor_recebido)
     diferenca = total_valor_fechado - total_valor_recebido
 
     return render_template('financeiro.html', financeiros=financeiros, clientes=clientes, total_valor_fechado=total_valor_fechado, total_valor_recebido=total_valor_recebido, diferenca=diferenca)
