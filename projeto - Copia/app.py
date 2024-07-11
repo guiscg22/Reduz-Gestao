@@ -40,8 +40,6 @@ class Compra(db.Model):
     valor_total = db.Column(db.Float, nullable=True)
     status_entrega = db.Column(db.String(20), nullable=True)
 
-
-
 class Obra(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     cliente_id = db.Column(db.Integer, db.ForeignKey('cliente.id', ondelete='CASCADE'), nullable=False)
@@ -78,7 +76,6 @@ class Financeiro(db.Model):
     numero_orcamento = db.Column(db.String(100), nullable=True)
     numero_nota_fiscal = db.Column(db.String(100), nullable=True)
     valor_fechado = db.Column(db.Float, nullable=True)
-    forma_pagamento = db.Column(db.String(50), nullable=True)
     valor_recebido = db.Column(db.Float, nullable=True, default=0.0)
     observacao = db.Column(db.Text, nullable=True)
     pagamentos = db.relationship('Pagamento', backref='financeiro', cascade="all, delete-orphan", lazy=True)
@@ -368,7 +365,6 @@ def financeiro():
                 valor_fechado_str = request.form.get(f'valor_fechado_{cliente.id}')
                 financeiro.valor_fechado = float(valor_fechado_str.replace('.', '').replace(',', '.')) if valor_fechado_str else 0
                 
-                financeiro.forma_pagamento = request.form.get(f'forma_pagamento_{cliente.id}')
                 financeiro.observacao = request.form.get(f'observacao_{cliente.id}')
 
                 # Reset valor recebido antes de calcular
@@ -397,7 +393,7 @@ def financeiro():
                     
                     valor_pagamento_str = request.form.get(f'valor_pagamento_{cliente.id}_new_{i}')
                     valor = float(valor_pagamento_str.replace('.', '').replace(',', '.')) if valor_pagamento_str else 0
-                    
+                                        
                     comprovante = request.files.get(f'comprovante_{cliente.id}_new_{i}')
 
                     if data_pagamento and forma_pagamento and valor:
