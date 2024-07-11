@@ -265,11 +265,9 @@ def compras():
                 else:
                     compra.data_compra = None
 
-                compra.orcamento = request.form.get(f'orcamento_{cliente.id}') or ''
-                compra.modulo = request.form.get(f'modulo_{cliente.id}') or ''
-                compra.inversor = request.form.get(f'inversor_{cliente.id}') or ''
-                compra.estrutura = request.form.get(f'estrutura_{cliente.id}') or ''
-                
+                compra.produto = request.form.get(f'produto_{cliente.id}') or ''
+                compra.quantidade = request.form.get(f'quantidade_{cliente.id}') or None
+
                 valor_total_str = request.form.get(f'valor_total_{cliente.id}')
                 compra.valor_total = float(valor_total_str.replace('.', '').replace(',', '.')) if valor_total_str else None
 
