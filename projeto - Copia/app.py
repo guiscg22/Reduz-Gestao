@@ -255,20 +255,20 @@ def compras():
                 if not compra:
                     compra = Compra(cliente_id=cliente.id)
                     db.session.add(compra)
-
-                compra.orcamento = request.form.get(f'orcamento_{cliente.id}')
-                compra.nota_fiscal = request.form.get(f'nota_fiscal_{cliente.id}')
-                compra.status = request.form.get(f'status_{cliente.id}')
-                db.session.commit()
-
+                compra.data_compra = request.form.get(f'data_compra_{cliente.id}')
+                compra.produto = request.form.get(f'produto_{cliente.id}')
+                compra.quantidade = request.form.get(f'quantidade_{cliente.id}')
+                compra.valor_total = request.form.get(f'valor_total_{cliente.id}')
+                compra.status_entrega = request.form.get(f'status_entrega_{cliente.id}')
+            db.session.commit()
             flash('Compras salvas com sucesso!', 'success')
-            return redirect(url_for('compras'))
         except Exception as e:
             db.session.rollback()
             flash(f"Erro ao salvar compras: {e}", 'danger')
 
     clientes = Cliente.query.all()
     return render_template('compras.html', clientes=clientes)
+
 
 
 
