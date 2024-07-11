@@ -34,7 +34,7 @@
             <td><input type="text" class="form-control fixed-width-input" name="estrutura_{{ cliente.id }}" value="{{ cliente.compras[0].estrutura if cliente.compras else '' }}"></td>
             <td><input type="text" class="form-control fixed-width-input" name="valor_total_{{ cliente.id }}" value="{{ '{:,.2f}'.format(cliente.compras[0].valor_total).replace(',', 'X').replace('.', ',').replace('X', '.') if cliente.compras and cliente.compras[0].valor_total else '' }}"></td>
             <td>
-              <select class="form-control" name="status_entrega_{{ cliente.id }}">
+              <select class="form-control fixed-width-input" name="status_entrega_{{ cliente.id }}">
                 <option value="Pendente" {% if cliente.compras and cliente.compras[0].status_entrega == 'Pendente' %}selected{% endif %}>Pendente</option>
                 <option value="Comprado" {% if cliente.compras and cliente.compras[0].status_entrega == 'Comprado' %}selected{% endif %}>Comprado</option>
               </select>
