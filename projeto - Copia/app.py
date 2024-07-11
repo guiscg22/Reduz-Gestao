@@ -17,7 +17,7 @@ db = SQLAlchemy(app)
 class Cliente(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     nome = db.Column(db.String(100), nullable=False)
-    cpf = db.Column(db.String(14), unique=True, nullable=False)  # Adjusted for CPF format
+    cpf = db.Column(db.String(14), unique=True, nullable=False)  # Ajustado para o formato do CPF
     endereco = db.Column(db.String(200), nullable=False)
     compras = db.relationship('Compra', backref='cliente', cascade="all, delete-orphan", lazy=True)
     obras = db.relationship('Obra', backref='cliente', cascade="all, delete-orphan", lazy=True)
@@ -32,9 +32,15 @@ class User(db.Model):
 class Compra(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     cliente_id = db.Column(db.Integer, db.ForeignKey('cliente.id', ondelete='CASCADE'), nullable=False)
+    data_compra = db.Column(db.Date, nullable=True)
     orcamento = db.Column(db.String(100), nullable=True)
-    nota_fiscal = db.Column(db.String(100), nullable=True)
-    status = db.Column(db.String(20), nullable=True)
+    modulo = db.Column(db.String(100), nullable=True)
+    inversor = db.Column(db.String(100), nullable=True)
+    estrutura = db.Column(db.String(100), nullable=True)
+    valor_total = db.Column(db.Float, nullable=True)
+    status_entrega = db.Column(db.String(20), nullable=True)
+
+
 
 class Obra(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -116,7 +122,7 @@ def usuarios():
         return redirect(url_for('login'))
     if request.method == 'POST':
         username = request.form['username']
-        password = generate_password_hash(request.form['password'], method='sha256')
+        password = generate_password_hash(request.form['password'])
         new_user = User(username=username, password=password)
         try:
             db.session.add(new_user)
@@ -135,7 +141,7 @@ def editar_usuario(id):
     if request.method == 'POST':
         user.username = request.form['username']
         if request.form['password']:
-            user.password = generate_password_hash(request.form['password'], method='sha256')
+            user.password = generate_password_hash(request.form['password'])
         try:
             db.session.commit()
             flash('User updated successfully!', 'success')
@@ -160,9 +166,9 @@ def excluir_usuario(id):
 @app.before_request
 def before_request():
     if not User.query.filter_by(username='alisson').first():
-        db.session.add(User(username='alisson', password=generate_password_hash('123456', method='sha256')))
+        db.session.add(User(username='alisson', password=generate_password_hash('123456')))
     if not User.query.filter_by(username='guilherme').first():
-        db.session.add(User(username='guilherme', password=generate_password_hash('123456', method='sha256')))
+        db.session.add(User(username='guilherme', password=generate_password_hash('123456')))
     db.session.commit()
 
 @app.route('/clientes', methods=['GET', 'POST'])
@@ -255,11 +261,22 @@ def compras():
                 if not compra:
                     compra = Compra(cliente_id=cliente.id)
                     db.session.add(compra)
-                compra.data_compra = request.form.get(f'data_compra_{cliente.id}')
-                compra.produto = request.form.get(f'produto_{cliente.id}')
-                compra.quantidade = request.form.get(f'quantidade_{cliente.id}')
-                compra.valor_total = request.form.get(f'valor_total_{cliente.id}')
-                compra.status_entrega = request.form.get(f'status_entrega_{cliente.id}')
+
+                data_compra = request.form.get(f'data_compra_{cliente.id}')
+                if data_compra:
+                    compra.data_compra = datetime.strptime(data_compra, '%Y-%m-%d').date()
+                else:
+                    compra.data_compra = None
+
+                compra.orcamento = request.form.get(f'orcamento_{cliente.id}') or ''
+                compra.modulo = request.form.get(f'modulo_{cliente.id}') or ''
+                compra.inversor = request.form.get(f'inversor_{cliente.id}') or ''
+                compra.estrutura = request.form.get(f'estrutura_{cliente.id}') or ''
+                
+                valor_total_str = request.form.get(f'valor_total_{cliente.id}')
+                compra.valor_total = float(valor_total_str.replace('.', '').replace(',', '.')) if valor_total_str else None
+
+                compra.status_entrega = request.form.get(f'status_entrega_{cliente.id}') or ''
             db.session.commit()
             flash('Compras salvas com sucesso!', 'success')
         except Exception as e:
@@ -270,7 +287,6 @@ def compras():
     for cliente in clientes:
         cliente.compras = Compra.query.filter_by(cliente_id=cliente.id).all()
     return render_template('compras.html', clientes=clientes)
-
 
 @app.route('/obras', methods=['GET', 'POST'])
 def obras():
