@@ -15,7 +15,6 @@
             <th>Número Orçamento</th>
             <th>Número Nota Fiscal</th>
             <th>Valor Fechado</th>
-            <th>Forma Pagamento</th>
             <th>Valor Recebido</th>
             <th>Observação</th>
           </tr>
@@ -31,7 +30,6 @@
             <td><input type="text" class="form-control fixed-width-input" name="numero_orcamento_{{ cliente.id }}" value="{{ cliente.financeiros[0].numero_orcamento if cliente.financeiros else '' }}"></td>
             <td><input type="text" class="form-control fixed-width-input" name="numero_nota_fiscal_{{ cliente.id }}" value="{{ cliente.financeiros[0].numero_nota_fiscal if cliente.financeiros else '' }}"></td>
             <td><input type="text" class="form-control fixed-width-input dinheiro" name="valor_fechado_{{ cliente.id }}" value="{{ '{:,.2f}'.format(cliente.financeiros[0].valor_fechado).replace(',', 'X').replace('.', ',').replace('X', '.') if cliente.financeiros and cliente.financeiros[0].valor_fechado else '' }}"></td>
-            <td><input type="text" class="form-control fixed-width-input" name="forma_pagamento_{{ cliente.id }}" value="{{ cliente.financeiros[0].forma_pagamento if cliente.financeiros else '' }}"></td>
             <td>
               <button type="button" class="btn btn-info" onclick="showPayments({{ cliente.id }})">
                 R$ {{ '{:,.2f}'.format(cliente.financeiros[0].valor_recebido).replace(',', 'X').replace('.', ',').replace('X', '.') if cliente.financeiros and cliente.financeiros[0].valor_recebido else '0,00' }}
@@ -45,7 +43,6 @@
           <tr>
             <th colspan="7">Totais</th>
             <th>R$ {{ '{:,.2f}'.format(total_valor_fechado).replace(',', 'X').replace('.', ',').replace('X', '.') }}</th>
-            <th></th>
             <th>R$ {{ '{:,.2f}'.format(total_valor_recebido).replace(',', 'X').replace('.', ',').replace('X', '.') }}</th>
             <th></th>
           </tr>
